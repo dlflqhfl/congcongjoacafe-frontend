@@ -1,4 +1,4 @@
----![KakaoTalk_20241111_183904023](https://github.com/user-attachments/assets/702c0317-959e-4425-b9f7-b0c46bc5c47e)
+-![KakaoTalk_20241111_183904023](https://github.com/user-attachments/assets/702c0317-959e-4425-b9f7-b0c46bc5c47e)
 
 ### **CONGCONGJOACONGCAFE 요구사항 분석**
 
