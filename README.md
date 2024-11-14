@@ -1,11 +1,11 @@
+---![KakaoTalk_20241111_183904023](https://github.com/user-attachments/assets/702c0317-959e-4425-b9f7-b0c46bc5c47e)
+
 ### **CONGCONGJOACONGCAFE 요구사항 분석**
 
 **프로젝트 개요**
 
 - **목적:** 모바일과 웹 환경에서 카페 주문을 효율적으로 관리하고, 관리자, 매장주(점주), 일반 유저를 위한 맞춤형 기능을 제공하여 주문, 결제, 멤버십, 재고 관리 등을 가능하게 합니다.
 - **플랫폼:** 모바일과 웹 최적화(Responsive Design), 백엔드(Spring Boot, JPA, MySQL, Redis), 프론트엔드(React, Tailwind CSS, ShadCN)
-
----
 
 ### **1. 사용자 시나리오**
 
