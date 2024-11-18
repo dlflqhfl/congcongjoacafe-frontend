@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Minus, Plus, Trash2, MapPin } from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
 import { useStoreStore } from '../store/storeStore';
 import StoreSelector from '../components/store/StoreSelector';
-import toast from 'react-hot-toast';
+import {useState} from "react";
 
 const Cart = () => {
   const navigate = useNavigate();

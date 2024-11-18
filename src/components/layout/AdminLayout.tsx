@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { Link, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -11,6 +10,7 @@ import {
   X,
   Ticket
 } from 'lucide-react';
+import {useState} from "react";
 
 const AdminLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

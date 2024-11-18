@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -10,6 +9,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Order } from '../../types';
+import {useState} from "react";
 
 const OrderHistory = () => {
   const [period, setPeriod] = useState<'1m' | '3m' | '6m' | '1y'>('3m');

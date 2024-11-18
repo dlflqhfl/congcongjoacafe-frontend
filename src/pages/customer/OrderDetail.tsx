@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -14,6 +14,7 @@ import {
 import ChatButton from '../../components/chat/ChatButton';
 import { stores } from '../../data/storeData';
 import toast from 'react-hot-toast';
+import {useState} from "react";
 
 const OrderDetail = () => {
   const { id } = useParams();

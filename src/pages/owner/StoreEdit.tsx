@@ -10,7 +10,7 @@ import MobileSheet from '../../components/common/MobileSheet';
 
 const storeSchema = z.object({
   name: z.string().min(1, '매장명을 입력해주세요'),
-  phone: z.string().regex(/^\d{2,3}-\d{3,4}-\d{4}$/, '올바른 전화번호 형식이 아닙니다'),
+  phone: z.string().regex(/^\d{2,3}\d{3,4}\d{4}$/, '올바른 전화번호 형식이 아닙니다'),
   address: z.string().min(1, '주소를 입력해주세요'),
   addressDetail: z.string().min(1, '상세주소를 입력해주세요'),
   region: z.string().min(1, '행정구역을 입력해주세요'),

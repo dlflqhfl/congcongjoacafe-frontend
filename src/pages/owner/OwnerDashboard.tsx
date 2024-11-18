@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -10,7 +9,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { ShoppingBag, DollarSign, Package, MessageSquare, X } from 'lucide-react';
+import { ShoppingBag, DollarSign, Package, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 ChartJS.register(

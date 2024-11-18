@@ -24,6 +24,25 @@ import AdminLogin from './pages/auth/AdminLogin';
 import Stores from './pages/Stores';
 import StoreDetail from './pages/StoreDetail';
 import Membership from './pages/Membership';
+import MyPage from "./pages/customer/MyPage.tsx";
+import ChatButton from "./components/chat/ChatButton.tsx";
+import OrderHistory from "./pages/customer/OrderHistory.tsx";
+import OrderDetail from "./pages/customer/OrderDetail.tsx";
+import Settings from "./pages/customer/Settings.tsx";
+import ReviewWrite from "./pages/customer/ReviewWrite.tsx";
+import StampCard from "./pages/customer/StampCard.tsx";
+import CouponList from "./pages/customer/CouponList.tsx";
+import {Settings2} from "lucide-react";
+import OwnerSettings from "./pages/owner/OwnerSettings.tsx";
+import StoreSetup from "./pages/owner/StoreSetup.tsx";
+import OwnerInquiries from "./pages/owner/Inquiries.tsx";
+import OwnerDashboard from "./pages/owner/OwnerDashboard.tsx";
+import OwnerMenus from "./pages/owner/Menus.tsx";
+import OwnerOrders from "./pages/owner/Orders.tsx";
+import OwnerSales from "./pages/owner/Sales.tsx";
+import StoreEdit from "./pages/owner/StoreEdit.tsx";
+import PasswordChange from "./pages/owner/PasswordChange.tsx";
+import StoreSettings from "./pages/owner/StoreSettings.tsx";
 
 const App = () => {
   return (
@@ -50,6 +69,15 @@ const App = () => {
         <Route path="/store-auth" element={<StoreAuth />} />
         <Route path="/owner/login" element={<OwnerLogin />} />
         <Route path="/admin/login" element={<AdminLogin />} />
+
+        {/* Customer Routes */}
+        <Route path="/mypage" element={<><Navbar /><MyPage /><ChatButton /></>} />
+        <Route path="/mypage/orders" element={<><Navbar /><OrderHistory /><ChatButton /></>} />
+        <Route path="/mypage/orders/:id" element={<><Navbar /><OrderDetail /><ChatButton /></>} />
+        <Route path="/mypage/stamp" element={<><Navbar /><StampCard /><ChatButton /></>} />
+        <Route path="/mypage/coupons" element={<><Navbar /><CouponList /><ChatButton /></>} />
+        <Route path="/mypage/settings" element={<><Navbar /><Settings /><ChatButton /></>} />
+        <Route path="/review/write/:orderId" element={<><Navbar /><ReviewWrite /><ChatButton /></>} />
         
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -63,10 +91,16 @@ const App = () => {
         
         {/* Owner Routes */}
         <Route path="/owner" element={<OwnerLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="store" element={<StoreManagement />} />
-          <Route path="menus" element={<MenuManagement />} />
-          <Route path="settings" element={<AdminSettings />} />
+          <Route index element={<OwnerDashboard/>} />
+          <Route path="store" element={<StoreSettings/>} />
+          <Route path="menus" element={<OwnerMenus />} />
+          <Route path="orders" element={<OwnerOrders/>} />
+          <Route path="sales" element={<OwnerSales/>} />
+          <Route path="inquiries" element={<OwnerInquiries />} />
+          <Route path="edit" element={<StoreEdit/>} />
+          <Route path="settings" element={<OwnerSettings/>} />
+          <Route path="setup" element={<StoreSetup/>} />
+          <Route path="password" element={<PasswordChange/>} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -106,7 +106,7 @@ const MenuList: React.FC = () => {
               className={`${
                 isMobile
                   ? 'fixed bottom-0 w-full'
-                  : 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl'
+                  : 'fixed top-1/2 left-1/2 !transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl'
               } bg-white rounded-t-3xl sm:rounded-2xl p-6`}
               onClick={e => e.stopPropagation()}
             >

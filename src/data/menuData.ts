@@ -1,6 +1,6 @@
 export const menuData = [
   {
-    id: 'signature-americano',
+    id: '1',
     name: '콩콩 시그니처 아메리카노',
     nameEng: 'CongCong Signature Americano',
     description: '콩콩조아만의 특별한 블렌딩 원두로 추출한 아메리카노',
@@ -54,7 +54,7 @@ export const menuData = [
     }
   },
   {
-    id: 'vanilla-latte',
+    id: '2',
     name: '바닐라 라떼',
     nameEng: 'Vanilla Latte',
     description: '부드러운 우유와 바닐라 시럽의 조화로운 맛',
@@ -110,7 +110,7 @@ export const menuData = [
     allergyInfo: ['우유']
   },
   {
-    id: 'tiramisu',
+    id: '3',
     name: '티라미수',
     nameEng: 'Tiramisu',
     description: '에스프레소를 적신 부드러운 케이크와 마스카포네 크림',

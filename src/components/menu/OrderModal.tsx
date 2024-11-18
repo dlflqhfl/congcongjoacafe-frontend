@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import StoreSelector from '../store/StoreSelector';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import type = _default.defaults.animations.numbers.type;
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, menu }) => {
   const [expandedSection, setExpandedSection] = useState<'size' | 'temperature' | 'extras' | null>(
     'size'
   );
-  
+
   const { isAuthenticated } = useAuthStore();
   const addToCart = useCartStore(state => state.addToCart);
   const { selectedStoreId } = useStoreStore();
@@ -59,7 +60,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, menu }) => {
       setIsStoreSelectorOpen(true);
       return;
     }
-    
+
     if (type === 'cart') {
       addToCartItem();
     } else {
@@ -118,7 +119,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, menu }) => {
             onClick={e => e.stopPropagation()}
           >
             {isMobile && <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />}
-            
+
             <button
               onClick={onClose}
               className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full"

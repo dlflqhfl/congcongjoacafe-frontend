@@ -1,11 +1,10 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Store, Clock, Bell, Coffee, Truck, Lock, ChevronRight } from 'lucide-react';
+import { Store, Bell, Coffee, Truck, Lock, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MobileSheet from '../../components/common/MobileSheet';
 import toast from 'react-hot-toast';
 
-const Settings = () => {
+const OwnerSettings = () => {
   const navigate = useNavigate();
   const isMobile = window.innerWidth < 768;
 
@@ -85,4 +84,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default OwnerSettings;

@@ -27,7 +27,7 @@ const MenuDetail: React.FC = () => {
     );
   }
 
-  const menuImages = menu.images || [{ url: menu.image, isMain: true }];
+  const menuImages = menu.images || [{ url: menu.images, isMain: true }];
 
   const tabs = [
     { id: 'description', label: '상세 정보' },

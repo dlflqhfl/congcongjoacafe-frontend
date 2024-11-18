@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,6 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { CreditCard, Wallet, Gift, ChevronRight, Ticket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import {useState} from "react";
 
 const orderSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요'),

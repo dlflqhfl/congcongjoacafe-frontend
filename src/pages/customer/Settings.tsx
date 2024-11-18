@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Bell, 
@@ -13,6 +12,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import {useState} from "react";
 
 const Settings = () => {
   const { user, logout } = useAuthStore();

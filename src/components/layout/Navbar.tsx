@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -17,6 +16,7 @@ import CartModal from '../cart/CartModal';
 import NotificationButton from '../notification/NotificationButton';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
+import {useState} from "react";
 
 const Navbar = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -40,7 +40,8 @@ const Navbar = () => {
   const profileMenuItems = [
     { icon: User, label: '마이페이지', path: '/mypage' },
     { icon: Clock, label: '주문 내역', path: '/mypage/orders' },
-    { icon: Gift, label: '쿠폰함', path: '/mypage/coupons' },
+    { icon: Gift, label: '스탬프', path: '/mypage/stamp' },
+    { icon: Gift, label: '쿠폰', path: '/mypage/coupons' },
     { icon: Settings, label: '설정', path: '/mypage/settings' },
   ];
 

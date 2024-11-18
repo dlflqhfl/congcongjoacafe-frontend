@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Coffee, Gift, Star, CreditCard } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';

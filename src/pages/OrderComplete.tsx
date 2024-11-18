@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, Link } from 'react-router-dom';
 import { CheckCircle, Coffee, ChevronRight } from 'lucide-react';

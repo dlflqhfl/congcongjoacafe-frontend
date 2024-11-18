@@ -1,9 +1,8 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const loginSchema = z.object({
@@ -35,7 +34,9 @@ const AdminLogin = () => {
         animate={{ opacity: 1, y: 0 }}
         className="sm:mx-auto sm:w-full sm:max-w-md"
       >
-        <img src="/logo.png" alt="콩콩조아" className="mx-auto h-16 w-auto" />
+        <Link to="/">
+          <img src="/logo.png" alt="콩콩조아" className="mx-auto h-16 w-auto" />
+        </Link>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
           관리자 로그인
         </h2>

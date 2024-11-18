@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useOwnerStore } from '../../store/ownerStore';
 import toast from 'react-hot-toast';
+import {useEffect, useState} from "react";
 
 const OwnerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -24,11 +24,11 @@ const OwnerLayout = () => {
 
   useEffect(() => {
     // 첫 로그인이면서 setup 페이지가 아닌 경우에만 setup으로 리다이렉트
-    if (isFirstLogin && location.pathname !== '/owner/setup') {
+  /*  if (isFirstLogin && location.pathname !== '/owner/setup') {
       navigate('/owner/setup');
       return;
-    }
-    
+    }*/
+
     // 첫 로그인이 아닌데 setup 페이지에 접근하려고 하면 메인으로 리다이렉트
     if (!isFirstLogin && location.pathname === '/owner/setup') {
       navigate('/owner');

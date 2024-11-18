@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -18,6 +17,7 @@ import { useStoreStore } from '../store/storeStore';
 import { useAuthStore } from '../store/authStore';
 import ChatButton from '../components/chat/ChatButton';
 import toast from 'react-hot-toast';
+import {useState} from "react";
 
 const StoreDetail = () => {
   const { id } = useParams();
