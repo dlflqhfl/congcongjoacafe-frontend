@@ -12,6 +12,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "axios": "^1.7.7",
+    "cafe-order-app": "file:",
     "chart.js": "^4.4.6",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.11.17",

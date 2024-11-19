@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Store, MapPin, Phone, Copy, Mail, Search } from 'lucide-react';
 import StoreInfoModal from '../../components/admin/StoreInfoModal';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 interface StoreCredentials {
   storeCode: string;
@@ -12,6 +13,9 @@ interface StoreCredentials {
 interface StoreRegistrationForm {
   name: string;
   email: string;
+  storeCode?: string; 
+  initialPassword?: string;
+  
 }
 
 const StoreManagement = () => {
@@ -65,23 +69,46 @@ const StoreManagement = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Generate store code and initial password
+    const storeCode = generateStoreCode();
+    const initialPassword = generateInitialPassword();
+
+    // Update formData with generated credentials
+    setFormData({ ...formData, storeCode, initialPassword });
+
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmRegistration = async () => {
-    const storeCode = generateStoreCode();
-    const initialPassword = generateInitialPassword();
-    
-    setStoreCredentials({
-      storeCode,
-      initialPassword
-    });
+  // axios 인스턴스 생성 및 baseURL 설정
+  const api = axios.create({
+    baseURL: 'http://localhost:9090/admin/',
+  });
 
-    // 이메일 전송 API 호출 (실제로는 백엔드에서 처리)
-    toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송됩니다.');
-    setIsConfirmModalOpen(false);
-    setIsFormOpen(false);
-  };
+  const handleConfirmRegistration = async () => {
+    const { storeCode, initialPassword, name, email } = formData;
+
+    try {
+        const response = await api.post('regStore', {
+            storeCode,
+            name,
+            email,
+            initialPassword,
+        });
+
+        if (response.status === 201) { // 성공 시 201 Created 상태 코드를 반환하는 것이 일반적입니다.
+            toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송됩니다.');
+        } else {
+            toast.error('매장 등록에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error(error);
+        toast.error('매장 등록 중 오류가 발생했습니다.');
+    } finally {
+        setIsConfirmModalOpen(false);
+        setIsFormOpen(false);
+    }
+};
 
   const handleCopyCredentials = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -232,6 +259,7 @@ const StoreManagement = () => {
                   </button>
                   <button
                     type="submit"
+                    onClick={handleFormSubmit}
                     className="px-4 py-2 bg-primary text-white rounded-lg"
                   >
                     등록
@@ -272,6 +300,7 @@ const StoreManagement = () => {
                 <p>다음 정보로 매장을 등록하시겠습니까?</p>
                 
                 <div className="bg-gray-50 p-4 rounded-lg">
+                  <p><span className="font-medium">매장 코드:</span> {formData.storeCode}</p>
                   <p><span className="font-medium">매장명:</span> {formData.name}</p>
                   <p><span className="font-medium">이메일:</span> {formData.email}</p>
                 </div>
