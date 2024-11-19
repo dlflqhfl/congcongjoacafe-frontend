@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply bg-[#FAF7F2] text-gray-900;
+  }
+
+  @media (max-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+
+    h1 {
+      @apply text-mobile-2xl;
+    }
+
+    h2 {
+      @apply text-mobile-xl;
+    }
+
+    h3 {
+      @apply text-mobile-lg;
+    }
+
+    p, input, select, textarea {
+      @apply text-mobile-base;
+    }
+
+    button {
+      @apply text-mobile-base min-h-[44px] min-w-[44px];
+    }
+  }
+}
+
+.glass-effect {
+  @apply bg-white/70 backdrop-blur-md;
+}
+
+.hover-scale {
+  @apply transition-transform duration-300 hover:scale-105;
+}
+
+.btn-primary {
+  @apply px-6 py-3 bg-primary text-white rounded-full font-medium 
+         shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 
+         transition-all duration-300 hover:-translate-y-1;
+}
+
+.card {
+  @apply bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-shadow duration-300;
+}
+
+/* 모바일 터치 영역 최적화 */
+@media (max-width: 768px) {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  input, select, textarea {
+    @apply p-4;
+  }
+
+  .mobile-sheet {
+    @apply text-lg;
+  }
+
+  .mobile-sheet input,
+  .mobile-sheet select,
+  .mobile-sheet textarea {
+    @apply text-lg p-4;
+  }
+
+  .mobile-sheet button {
+    @apply text-lg p-4;
+  }
+}
