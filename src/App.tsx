@@ -43,6 +43,7 @@ import OwnerSales from "./pages/owner/Sales.tsx";
 import StoreEdit from "./pages/owner/StoreEdit.tsx";
 import PasswordChange from "./pages/owner/PasswordChange.tsx";
 import StoreSettings from "./pages/owner/StoreSettings.tsx";
+import { Toaster } from 'react-hot-toast';
 
 const App = () => {
   return (
@@ -103,6 +104,7 @@ const App = () => {
           <Route path="password" element={<PasswordChange/>} />
         </Route>
       </Routes>
+      <Toaster position="top-right" reverseOrder={false} />
     </BrowserRouter>
   );
 };

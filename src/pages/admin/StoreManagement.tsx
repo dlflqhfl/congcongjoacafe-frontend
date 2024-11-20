@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Store, MapPin, Phone, Copy, Mail, Search } from 'lucide-react';
 import StoreInfoModal from '../../components/admin/StoreInfoModal';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 
 interface StoreCredentials {
@@ -25,6 +25,8 @@ const StoreManagement = () => {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<any>(null);
   const [formData, setFormData] = useState<StoreRegistrationForm>({ name: '', email: '' });
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const isMobile = window.innerWidth < 768;
 
@@ -56,10 +58,83 @@ const StoreManagement = () => {
     }
   ];
 
-  const generateStoreCode = () => {
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    setFormData(prev => ({ ...prev, name }));
+  };
+
+  const handleCheckNameDuplicate = async () => {
+    const isDuplicate = await checkStoreNameDuplicate(formData.name);
+    if (isDuplicate) {
+      setNameError('사용가능한 매장명입니다.');
+    } else {
+      setNameError('이미 사용중인 매장명입니다.');
+    }
+  };
+
+  const checkStoreNameDuplicate = async (storeName: string) => {
+    try {
+      const response = await api.get('/checkStoreName', {
+        params: { storeName }
+      });
+      if (response.status === 200 && response.data.resultCode === "OK") {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error("Error in checkStoreNameDuplicate:", error);
+      return false;
+    }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const email = e.target.value;
+    setFormData(prev => ({ ...prev, email }));
+
+    if (!isValidEmail(email)) {
+      setEmailError('유효한 이메일 주소를 입력하세요.');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // axios 인스턴스 생성 및 baseURL 설정
+  const api = axios.create({
+    baseURL: '/admin',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+  });
+
+  const generateStoreCode = async () => {
+    let storeCode;
+    let isDuplicate = true;
     // 매장 코드는 'CONG-' 접두사와 6자리 숫자로 구성
-    const number = Math.floor(100000 + Math.random() * 900000);
-    return `CONG-${number}`;
+    while(isDuplicate){
+      storeCode = `CONG-${Math.floor(100000 + Math.random() * 900000)}`;
+      // 중복된 매장 코드가 있는지 확인
+      try {
+        // 중복된 매장 코드가 있는지 확인
+        const response = await api.get(`/checkStoreCode`, {
+            params: { storeCode }
+        });
+        console.log("백엔드 다녀옴", response);
+        if (response.status === 200 && response.data.resultCode === "OK") {
+            isDuplicate = false;
+        }
+      } catch (error) {
+          console.error("Error in generateStoreCode:", error);
+          throw error; // 에러 발생 시 루프를 중단하고 에러를 던집니다.
+      }
+    }
+
+    return storeCode;
   };
 
   const generateInitialPassword = () => {
@@ -67,11 +142,10 @@ const StoreManagement = () => {
     return Math.random().toString(36).slice(-8).toUpperCase();
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = async () => {
 
     // Generate store code and initial password
-    const storeCode = generateStoreCode();
+    const storeCode = await generateStoreCode();
     const initialPassword = generateInitialPassword();
 
     // Update formData with generated credentials
@@ -80,24 +154,20 @@ const StoreManagement = () => {
     setIsConfirmModalOpen(true);
   };
 
-  // axios 인스턴스 생성 및 baseURL 설정
-  const api = axios.create({
-    baseURL: 'http://localhost:9090/admin/',
-  });
-
   const handleConfirmRegistration = async () => {
     const { storeCode, initialPassword, name, email } = formData;
 
     try {
-        const response = await api.post('regStore', {
+        const response = await api.post('/regStore', {
             storeCode,
             name,
             email,
             initialPassword,
         });
 
-        if (response.status === 201) { // 성공 시 201 Created 상태 코드를 반환하는 것이 일반적입니다.
+        if (response.status === 200 && response.data.resultCode === "OK") {
             toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송됩니다.');
+
         } else {
             toast.error('매장 등록에 실패했습니다.');
         }
@@ -225,14 +295,24 @@ const StoreManagement = () => {
                   <label className="block text-sm font-medium text-gray-700">
                     매장명
                   </label>
+                  <div className="flex items-center space-x-2 w-full">
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={handleNameChange}
                     required
                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
-                             focus:ring-primary focus:border-primary"
+                              focus:ring-primary focus:border-primary"
                   />
+                  <button
+                    type="button"
+                    onClick={handleCheckNameDuplicate}
+                    className="w-20 px-2 py-1 text-sm text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
+                  >
+                    중복체크
+                  </button>
+                  </div>
+                  {nameError && <p className="text-red-500">{nameError}</p>}
                 </div>
 
                 <div>
@@ -242,11 +322,12 @@ const StoreManagement = () => {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    onChange={handleEmailChange}
                     required
                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
                              focus:ring-primary focus:border-primary"
                   />
+                  {emailError && <p className="text-red-500">{emailError}</p>}
                 </div>
 
                 <div className="flex justify-end space-x-3">
@@ -258,9 +339,10 @@ const StoreManagement = () => {
                     취소
                   </button>
                   <button
-                    type="submit"
+                    type="button"
                     onClick={handleFormSubmit}
                     className="px-4 py-2 bg-primary text-white rounded-lg"
+                    disabled={nameError !== '사용가능한 매장명입니다.'}
                   >
                     등록
                   </button>
