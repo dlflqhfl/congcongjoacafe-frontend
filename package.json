@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
+    "@react-buddy/ide-toolbox": "^2.4.0",
     "axios": "^1.7.7",
     "chart.js": "^4.4.6",
     "date-fns": "^4.1.0",
@@ -23,8 +24,7 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.28.0",
     "zod": "^3.23.8",
-    "zustand": "^5.0.1",
-    "@react-buddy/ide-toolbox": "^2.4.0"
+    "zustand": "^5.0.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
