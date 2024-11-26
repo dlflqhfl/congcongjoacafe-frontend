@@ -104,7 +104,7 @@ const App = () => {
           <Route path="password" element={<PasswordChange/>} />
         </Route>
       </Routes>
-      <Toaster position="top-right" reverseOrder={false} />
+      <Toaster position="top-center" reverseOrder={false} />
     </BrowserRouter>
   );
 };

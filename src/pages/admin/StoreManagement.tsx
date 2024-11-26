@@ -167,7 +167,13 @@ const StoreManagement = () => {
 
         if (response.status === 200 && response.data.resultCode === "OK") {
             toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송됩니다.');
-
+            // 이메일 발송 요청
+            await api.post('/sendEmail', {
+              storeCode,
+              name,
+              email,
+              initialPassword,
+            });
         } else {
             toast.error('매장 등록에 실패했습니다.');
         }
