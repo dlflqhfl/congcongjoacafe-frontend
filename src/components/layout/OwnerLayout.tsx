@@ -1,6 +1,6 @@
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
+import {
   Coffee,
   ShoppingBag,
   BarChart2,
@@ -19,28 +19,54 @@ const OwnerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isFirstLogin, storeName, clearStore } = useOwnerStore();
+  const { isFirstLogin, sName : storeName } = useOwnerStore();
   const isMobile = window.innerWidth < 768;
 
   useEffect(() => {
     // 첫 로그인이면서 setup 페이지가 아닌 경우에만 setup으로 리다이렉트
-  /*  if (isFirstLogin && location.pathname !== '/owner/setup') {
+    if (isFirstLogin && location.pathname !== '/owner/setup') {
+
       navigate('/owner/setup');
+
+      setTimeout(() => {
+        toast.error('매장 등록을 먼저 진행해 주십시오.');
+      }, 0);
       return;
-    }*/
+    }
 
     // 첫 로그인이 아닌데 setup 페이지에 접근하려고 하면 메인으로 리다이렉트
     if (!isFirstLogin && location.pathname === '/owner/setup') {
+
       navigate('/owner');
+
+      setTimeout(() => {
+        toast.error('올바르지 않은 접근입니다');
+      }, 0);
     }
   }, [isFirstLogin, location.pathname, navigate]);
 
   const handleLogout = () => {
-    clearStore();
+    // Store clear function
+
+
+    // 쿠키 삭제 함수
+    const deleteCookie = (cookieName: string) => {
+      // 쿠키의 경로 설정에 따라서 path 값을 정해야 합니다.
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    };
+
+    // 필요한 쿠키 삭제
+    deleteCookie('accessToken');
+    deleteCookie('refreshToken');
+
+    localStorage.removeItem('owner-storage');
+
+    // 로그아웃 성공 알림
     toast.success('로그아웃되었습니다');
+
+    // 로그인 페이지로 이동
     navigate('/owner/login');
   };
-
   const menuItems = [
     { icon: Coffee, label: '메뉴 관리', path: '/owner/menus' },
     { icon: ShoppingBag, label: '주문 관리', path: '/owner/orders' },

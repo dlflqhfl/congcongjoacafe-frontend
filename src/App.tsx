@@ -32,7 +32,6 @@ import Settings from "./pages/customer/Settings.tsx";
 import ReviewWrite from "./pages/customer/ReviewWrite.tsx";
 import StampCard from "./pages/customer/StampCard.tsx";
 import CouponList from "./pages/customer/CouponList.tsx";
-import {Settings2} from "lucide-react";
 import OwnerSettings from "./pages/owner/OwnerSettings.tsx";
 import StoreSetup from "./pages/owner/StoreSetup.tsx";
 import OwnerInquiries from "./pages/owner/Inquiries.tsx";
@@ -44,6 +43,7 @@ import StoreEdit from "./pages/owner/StoreEdit.tsx";
 import PasswordChange from "./pages/owner/PasswordChange.tsx";
 import StoreSettings from "./pages/owner/StoreSettings.tsx";
 import { Toaster } from 'react-hot-toast';
+
 
 const App = () => {
   return (
