@@ -65,8 +65,10 @@ const OwnerLogin = () => {
         if (response.data.resultCode === 'USER_LOGIN_SUCCESS') {
           console.log('로그인 성공:', response.data);
 
+          axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.data.accessToken}`;
+
           setStore(selectedStore.id, selectedStore.sname);
-          const isFirstLogin = response.data.data.isFirstLogin || false;
+          const isFirstLogin = response.data.data.isFirstLogin;
 
           setFirstLogin(isFirstLogin);
 
@@ -158,7 +160,7 @@ const OwnerLogin = () => {
                   <Store className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                       {...register('sCode')}
-                      placeholder="CONG-123456"
+                      placeholder="매장 코드를 입력해주세요"
                       className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
                   />
                 </div>
@@ -176,6 +178,7 @@ const OwnerLogin = () => {
                   <input
                       {...register('password')}
                       type="password"
+                      placeholder={"********"}
                       className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
                   />
                 </div>

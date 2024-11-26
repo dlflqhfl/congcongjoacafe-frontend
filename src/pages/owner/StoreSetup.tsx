@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,10 +8,16 @@ import { useNavigate } from 'react-router-dom';
 import { useOwnerStore } from '../../store/ownerStore';
 import toast from 'react-hot-toast';
 import MobileSheet from '../../components/common/MobileSheet';
+import axios from "axios";
+
+const ownerApi =  axios.create({
+  baseURL: 'http://localhost:9090/api/owner',
+  withCredentials: true,
+});
 
 const storeSchema = z.object({
   name: z.string().min(1, '매장명을 입력해주세요'),
-  phone: z.string().regex(/^\d{2,3}-\d{3,4}-\d{4}$/, '올바른 전화번호 형식이 아닙니다'),
+  phone: z.string().regex(/^\d{2,3}\d{3,4}\d{4}$/, '올바른 전화번호 형식이 아닙니다'),
   address: z.string().min(1, '주소를 입력해주세요'),
   addressDetail: z.string().min(1, '상세주소를 입력해주세요'),
   region: z.string().min(1, '행정구역을 입력해주세요'),
@@ -38,7 +44,7 @@ const StoreSetup = () => {
   const { setFirstLogin } = useOwnerStore();
   const isMobile = window.innerWidth < 768;
 
-  const { register, handleSubmit, formState: { errors } } = useForm<StoreForm>({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<StoreForm>({
     resolver: zodResolver(storeSchema),
     defaultValues: {
       status: 1,
@@ -52,6 +58,18 @@ const StoreSetup = () => {
       }
     }
   });
+
+  /*useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await ownerApi.get('/getStoreName');
+        setValue('name', response.data.name);
+      } catch (error) {
+        toast.error('매장명 정보를 가져오는데 실패했습니다.');
+      }
+    };
+    fetchData();
+  }, [setValue]);*/
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -250,8 +268,7 @@ const StoreSetup = () => {
             </label>
             <input
                 {...register('name')}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                     focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
             />
             {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
