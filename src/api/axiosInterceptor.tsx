@@ -52,6 +52,5 @@ setInterceptors(userAxios);
 setInterceptors(ownerAxios);
 setInterceptors(adminAxios);
 
-// 필요에 따라 다른 인터셉터나 설정 추가 가능
 
 export { userAxios, ownerAxios, adminAxios };

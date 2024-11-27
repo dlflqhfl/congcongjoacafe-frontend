@@ -1,16 +1,15 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
 import { Upload, X, Crown, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOwnerStore } from '../../store/ownerStore';
 import toast from 'react-hot-toast';
 import MobileSheet from '../../components/common/MobileSheet';
-import axios from "axios";
+import axios from 'axios';
 
-const ownerApi =  axios.create({
+const ownerApi = axios.create({
   baseURL: 'http://localhost:9090/api/owner',
   withCredentials: true,
 });
@@ -18,9 +17,9 @@ const ownerApi =  axios.create({
 const storeSchema = z.object({
   name: z.string().min(1, '매장명을 입력해주세요'),
   phone: z.string().regex(/^\d{2,3}\d{3,4}\d{4}$/, '올바른 전화번호 형식이 아닙니다'),
-  address: z.string().min(1, '주소를 입력해주세요'),
-  addressDetail: z.string().min(1, '상세주소를 입력해주세요'),
-  region: z.string().min(1, '행정구역을 입력해주세요'),
+  address: z.string().min(1, '우편번호를 입력해주세요'),
+  addressDetail: z.string().min(1, '주소를 입력해주세요'),
+  region: z.string().min(1, '상세주소를 입력해주세요'),
   businessHours: z.object({
     start: z.string().min(1, '영업 시작 시간을 선택해주세요'),
     end: z.string().min(1, '영업 종료 시간을 선택해주세요')
@@ -43,6 +42,8 @@ const StoreSetup = () => {
   const [isDragging, setIsDragging] = useState(false);
   const { setFirstLogin } = useOwnerStore();
   const isMobile = window.innerWidth < 768;
+  const [SName, setSName] = useState<string>('');
+  const [isAddressSheetOpen, setIsAddressSheetOpen] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<StoreForm>({
     resolver: zodResolver(storeSchema),
@@ -59,17 +60,39 @@ const StoreSetup = () => {
     }
   });
 
-  /*useEffect(() => {
-    const fetchData = async () => {
+  useEffect(() => {
+    const storageValue = localStorage.getItem('owner-storage');
+
+    if (storageValue) {
       try {
-        const response = await ownerApi.get('/getStoreName');
-        setValue('name', response.data.name);
+        const parsedValue = JSON.parse(storageValue);
+        const sName = parsedValue.state?.sName;
+        setSName(sName || '');
+        setValue('name', sName || '');
       } catch (error) {
-        toast.error('매장명 정보를 가져오는데 실패했습니다.');
+        console.error('Error parsing JSON from localStorage', error);
       }
-    };
-    fetchData();
-  }, [setValue]);*/
+    }
+  }, [setValue]);
+
+  const handleAddressClick = () => {
+    if (isMobile) {
+      setIsAddressSheetOpen(true);
+    } else {
+      new window.daum.Postcode({
+        oncomplete: function (data) {
+          setValue('address', data.zonecode);
+          setValue('addressDetail', data.address);
+        }
+      }).open();
+    }
+  };
+
+  const handleAddressComplete = (data: any) => {
+    setValue('address', data.zonecode);
+    setValue('addressDetail', data.address);
+    setIsAddressSheetOpen(false);
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -99,7 +122,7 @@ const StoreSetup = () => {
   const handleFiles = (files: File[]) => {
     const validFiles = files.filter(file => {
       const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
 
       if (!validTypes.includes(file.type)) {
         toast.error('JPG, PNG, WEBP 형식만 지원합니다');
@@ -138,7 +161,6 @@ const StoreSetup = () => {
   const handleRemoveImage = (index: number) => {
     setImages(prev => {
       const newImages = prev.filter((_, i) => i !== index);
-      // If we removed the main image, set the first remaining image as main
       if (prev[index].isMain && newImages.length > 0) {
         newImages[0].isMain = true;
       }
@@ -153,10 +175,7 @@ const StoreSetup = () => {
         return;
       }
 
-      // API call would go here
       await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 매장 정보 등록 성공 후 firstLogin 상태를 false로 변경
       setFirstLogin(false);
 
       toast.success('매장 정보가 등록되었습니다');
@@ -166,17 +185,30 @@ const StoreSetup = () => {
     }
   };
 
+  const addressContent = (
+      <div className="h-full">
+        <div id="address-search-container" className="h-full"></div>
+      </div>
+  );
+
+  useEffect(() => {
+    if (isAddressSheetOpen) {
+      new window.daum.Postcode({
+        oncomplete: handleAddressComplete,
+        width: '100%',
+        height: '100%'
+      }).embed(document.getElementById('address-search-container'));
+    }
+  }, [isAddressSheetOpen]);
+
   const content = (
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        {/* Image Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             매장 이미지
           </label>
           <div
-              className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
-                  isDragging ? 'border-primary bg-primary/5' : 'border-gray-300'
-              }`}
+              className={`border-2 border-dashed rounded-lg p-4 transition-colors ${isDragging ? 'border-primary bg-primary/5' : 'border-gray-300'}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -197,34 +229,26 @@ const StoreSetup = () => {
                         <img
                             src={img.url}
                             alt={`매장 이미지 ${index + 1}`}
-                            className={`w-full aspect-square object-cover rounded-lg ${
-                                img.isMain ? 'ring-2 ring-primary' : ''
-                            }`}
+                            className={`w-full aspect-square object-cover rounded-lg ${img.isMain ? 'ring-2 ring-primary' : ''}`}
                         />
                         <div className="absolute top-2 right-2 flex space-x-1">
                           <button
                               type="button"
                               onClick={() => handleSetMainImage(index)}
-                              className={`p-1.5 rounded-full group-hover:opacity-100 ${
-                                  img.isMain
-                                      ? 'bg-primary text-white opacity-100'
-                                      : 'bg-white/90 text-gray-600 hover:bg-primary hover:text-white opacity-0'
-                              } transition-all duration-200`}
+                              className={`p-1.5 rounded-full group-hover:opacity-100 ${img.isMain ? 'bg-primary text-white opacity-100' : 'bg-white/90 text-gray-600 hover:bg-primary hover:text-white opacity-0'} transition-all duration-200`}
                           >
                             <Crown className="w-4 h-4" />
                           </button>
                           <button
                               type="button"
                               onClick={() => handleRemoveImage(index)}
-                              className="p-1.5 bg-red-500 text-white rounded-full opacity-0
-                               group-hover:opacity-100 transition-opacity duration-200"
+                              className="p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           >
                             <X className="w-4 h-4" />
                           </button>
                         </div>
                         {img.isMain && (
-                            <div className="absolute top-2 left-2 px-2 py-1 bg-primary/90 text-white
-                                 text-xs rounded-full flex items-center">
+                            <div className="absolute top-2 left-2 px-2 py-1 bg-primary/90 text-white text-xs rounded-full flex items-center">
                               <Crown className="w-3 h-3 mr-1" />
                               대표
                             </div>
@@ -234,9 +258,7 @@ const StoreSetup = () => {
                   {images.length < 5 && (
                       <label
                           htmlFor="image-upload"
-                          className="flex flex-col items-center justify-center aspect-square
-                           border-2 border-dashed border-gray-300 rounded-lg 
-                           cursor-pointer hover:bg-gray-50"
+                          className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
                       >
                         <Plus className="w-6 h-6 text-gray-400" />
                         <span className="mt-2 text-sm text-gray-500">추가</span>
@@ -244,10 +266,7 @@ const StoreSetup = () => {
                   )}
                 </div>
             ) : (
-                <label
-                    htmlFor="image-upload"
-                    className="flex flex-col items-center justify-center py-12 cursor-pointer"
-                >
+                <label htmlFor="image-upload" className="flex flex-col items-center justify-center py-12 cursor-pointer">
                   <Upload className="w-12 h-12 text-gray-400" />
                   <p className="mt-2 text-sm text-gray-600">
                     이미지를 드래그하거나 클릭하여 업로드
@@ -260,7 +279,6 @@ const StoreSetup = () => {
           </div>
         </div>
 
-        {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -268,7 +286,9 @@ const StoreSetup = () => {
             </label>
             <input
                 {...register('name')}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary bg-gray-100 cursor-not-allowed"
+                defaultValue={SName}
+                disabled
             />
             {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
@@ -281,8 +301,7 @@ const StoreSetup = () => {
             </label>
             <input
                 {...register('ceo')}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                     focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
             />
             {errors.ceo && (
                 <p className="mt-1 text-sm text-red-600">{errors.ceo.message}</p>
@@ -295,9 +314,8 @@ const StoreSetup = () => {
             </label>
             <input
                 {...register('phone')}
-                placeholder="02-1234-5678"
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                     focus:ring-primary focus:border-primary"
+                placeholder="0212345678"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
             />
             {errors.phone && (
                 <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
@@ -310,8 +328,7 @@ const StoreSetup = () => {
             </label>
             <select
                 {...register('status', { valueAsNumber: true })}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                     focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
             >
               <option value={1}>영업중</option>
               <option value={0}>휴업중</option>
@@ -319,23 +336,22 @@ const StoreSetup = () => {
           </div>
         </div>
 
-        {/* Address */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              주소
+              우편 번호
             </label>
-            <div className="mt-1 flex space-x-2">
+            <div className="mt-1 flex">
               <input
                   {...register('address')}
-                  className="flex-1 rounded-lg border-gray-300 shadow-sm
-                       focus:ring-primary focus:border-primary"
+                  className="flex-1 rounded-l-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
               />
               <button
                   type="button"
-                  className="px-4 py-2 bg-primary text-white rounded-lg"
+                  className="px-4 py-2 bg-primary text-white rounded-r-lg shadow-sm border-l-0 border-gray-300 focus:ring-primary focus:border-primary"
+                  onClick={handleAddressClick}
               >
-                주소 찾기
+                우편번호 찾기
               </button>
             </div>
             {errors.address && (
@@ -345,12 +361,11 @@ const StoreSetup = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              상세주소
+              주소
             </label>
             <input
                 {...register('addressDetail')}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                     focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
             />
             {errors.addressDetail && (
                 <p className="mt-1 text-sm text-red-600">{errors.addressDetail.message}</p>
@@ -359,13 +374,12 @@ const StoreSetup = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              행정구역
+              상세주소
             </label>
             <input
                 {...register('region')}
                 placeholder="예: 서울시 강남구"
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                     focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
             />
             {errors.region && (
                 <p className="mt-1 text-sm text-red-600">{errors.region.message}</p>
@@ -373,7 +387,6 @@ const StoreSetup = () => {
           </div>
         </div>
 
-        {/* Business Hours */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             영업시간
@@ -384,8 +397,7 @@ const StoreSetup = () => {
               <input
                   type="time"
                   {...register('businessHours.start')}
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                       focus:ring-primary focus:border-primary"
+                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
               />
               {errors.businessHours?.start && (
                   <p className="mt-1 text-sm text-red-600">
@@ -398,8 +410,7 @@ const StoreSetup = () => {
               <input
                   type="time"
                   {...register('businessHours.end')}
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                       focus:ring-primary focus:border-primary"
+                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
               />
               {errors.businessHours?.end && (
                   <p className="mt-1 text-sm text-red-600">
@@ -410,7 +421,6 @@ const StoreSetup = () => {
           </div>
         </div>
 
-        {/* Facilities */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             편의시설
@@ -420,8 +430,7 @@ const StoreSetup = () => {
               <input
                   type="checkbox"
                   {...register('takeout')}
-                  className="rounded border-gray-300 text-primary
-                       focus:ring-primary"
+                  className="rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="ml-2">포장 가능</span>
             </label>
@@ -429,8 +438,7 @@ const StoreSetup = () => {
               <input
                   type="checkbox"
                   {...register('parking')}
-                  className="rounded border-gray-300 text-primary
-                       focus:ring-primary"
+                  className="rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="ml-2">주차 가능</span>
             </label>
@@ -438,8 +446,7 @@ const StoreSetup = () => {
               <input
                   type="checkbox"
                   {...register('wifi')}
-                  className="rounded border-gray-300 text-primary
-                       focus:ring-primary"
+                  className="rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="ml-2">와이파이</span>
             </label>
@@ -447,15 +454,13 @@ const StoreSetup = () => {
               <input
                   type="checkbox"
                   {...register('delivery')}
-                  className="rounded border-gray-300 text-primary
-                       focus:ring-primary"
+                  className="rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="ml-2">배달 가능</span>
             </label>
           </div>
         </div>
 
-        {/* Additional Info */}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -464,8 +469,7 @@ const StoreSetup = () => {
             <textarea
                 {...register('directions')}
                 rows={3}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                     focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
                 placeholder="예: 2번 출구에서 도보 5분"
             />
           </div>
@@ -477,40 +481,50 @@ const StoreSetup = () => {
             <textarea
                 {...register('notes')}
                 rows={3}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                     focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
                 placeholder="예: 노트북 사용 가능"
             />
           </div>
         </div>
 
         <div className="flex justify-end space-x-3">
-          <button
-              type="submit"
-              className="px-4 py-2 bg-primary text-white rounded-lg"
-          >
+          <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg">
             등록
           </button>
         </div>
       </form>
   );
 
-  return isMobile ? (
-      <MobileSheet
-          isOpen={true}
-          onClose={() => {}}
-          title="매장 정보 등록"
-          showCloseButton={false}
-      >
-        {content}
-      </MobileSheet>
-  ) : (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-          <h1 className="text-2xl font-bold mb-8">매장 정보 등록</h1>
-          {content}
-        </div>
-      </div>
+  return (
+      <>
+        {isMobile ? (
+            <MobileSheet
+                isOpen={true}
+                onClose={() => {}}
+                title="매장 정보 등록"
+                showCloseButton={false}
+            >
+              {content}
+            </MobileSheet>
+        ) : (
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
+                <h1 className="text-2xl font-bold mb-8">매장 정보 등록</h1>
+                {content}
+              </div>
+            </div>
+        )}
+
+        {isMobile && (
+            <MobileSheet
+                isOpen={isAddressSheetOpen}
+                onClose={() => setIsAddressSheetOpen(false)}
+                title="주소 검색"
+            >
+              {addressContent}
+            </MobileSheet>
+        )}
+      </>
   );
 };
 
