@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Edit2, Trash2 } from 'lucide-react';
 import { MenuOption } from '../../types';
@@ -14,18 +14,31 @@ const GlobalOptionManagement: React.FC<GlobalOptionManagementProps> = ({
   isOpen,
   onClose
 }) => {
+  const [globalOptions, setGlobalOptions] = useState<MenuOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<MenuOption | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const isMobile = window.innerWidth < 768;
 
-  // 실제로는 API를 통해 전체 옵션 목록을 가져옴
-  const globalOptions = {
-    extras: [
-      { id: 'extra1', name: '샷 추가', price: 500, status: true },
-      { id: 'extra2', name: '시럽 추가', price: 300, status: true },
-      { id: 'extra3', name: '휘핑크림', price: 500, status: true }
-    ]
+  const fetchOptions = async () => {
+    try {
+      const response = await axios.get('/admin/optionList');
+      console.log(response.data);
+      const data: MenuOption[] = Array.isArray(response.data.data) ? response.data.data.map((option: any) => ({
+        id: option.id,
+        name: option.opName,
+        price: option.opPrice,
+        status: option.opStatus,
+      })) : [];
+      setGlobalOptions(data);
+    } catch (error) {
+      console.error('옵션 리스트를 가져오는 데 실패했습니다.', error);
+      toast.error('옵션 리스트를 가져오는 중 오류가 발생했습니다.');
+    }
   };
+
+  useEffect(() => {
+    fetchOptions();
+  }, []);
 
   const handleEditOption = (option: MenuOption) => {
     setSelectedOption(option);
@@ -65,6 +78,7 @@ const GlobalOptionManagement: React.FC<GlobalOptionManagementProps> = ({
         toast.success('옵션이 추가되었습니다');
         }
       }
+      fetchOptions();
     } catch (error) {
       toast.error('옵션 저장 중 오류가 발생했습니다');
     }
@@ -133,7 +147,7 @@ const GlobalOptionManagement: React.FC<GlobalOptionManagementProps> = ({
       </div>
 
       <div className="space-y-8">
-        {renderOptionList('퍼스널 옵션', globalOptions.extras)}
+        {renderOptionList('퍼스널 옵션', globalOptions)}
       </div>
 
       <div className="flex justify-end mt-8">

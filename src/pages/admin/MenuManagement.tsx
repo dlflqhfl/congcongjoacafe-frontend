@@ -6,7 +6,7 @@ import GlobalOptionManagement from '../../components/admin/GlobalOptionManagemen
 import MenuOptionManagement from '../../components/admin/MenuOptionManagement';
 import toast from 'react-hot-toast';
 import axios from 'axios';
-import { MenuItem } from '../../types';
+import { MenuItem, MenuOption } from '../../types';
 
 const MenuManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,13 +15,13 @@ const MenuManagement = () => {
   const [isMenuOptionOpen, setIsMenuOptionOpen] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [menus, setMenus] =  useState<MenuItem[]>([]);
+  const [globalOptions, setGlobalOptions] = useState<MenuOption[]>([]);
   const s3BaseUrl = 'https://congcongjoa.s3.ap-northeast-2.amazonaws.com/menu/';
 
   useEffect(() => {
     const fetchMenus = async () => {
       try {
-        const response = await axios.get('/admin/menulist'); // API 엔드포인트를 적절히 변경하세요
-        console.log(response.data);
+        const response = await axios.get('/admin/menuList'); // API 엔드포인트를 적절히 변경하세요
         const data: MenuItem[] = Array.isArray(response.data.data) ? response.data.data.map((menu: any) => ({
           id: menu.id,
           name: menu.mnName,
@@ -59,22 +59,26 @@ const MenuManagement = () => {
       }
     };
 
-    fetchMenus();
-  }, []);
+    const fetchGlobalOptions = async () => {
+      try {
+        const response = await axios.get('/admin/optionList');
+        console.log(response.data);
+        const data: MenuOption[] = Array.isArray(response.data.data) ? response.data.data.map((option: any) => ({
+          id: option.id,
+          name: option.opName,
+          price: option.opPrice,
+          status: option.opStatus,
+        })) : [];
+        setGlobalOptions(data);
+      } catch (error) {
+        console.error('옵션 리스트를 가져오는 데 실패했습니다:', error);
+        toast.error('옵션 리스트를 가져오는 중 오류가 발생했습니다.');
+      }
+    };
 
-  // 실제로는 API를 통해 전체 옵션 목록을 가져옴
-  const globalOptions = {
-    sizes: [
-      { id: 'size1', name: 'Short', price: -500, volume: '237ml', available: true },
-      { id: 'size2', name: 'Tall', price: 0, volume: '355ml', available: true },
-      { id: 'size3', name: 'Grande', price: 500, volume: '473ml', available: true }
-    ],
-    extras: [
-      { id: 'extra1', name: '샷 추가', price: 500, available: true, status: true },
-      { id: 'extra2', name: '시럽 추가', price: 300, available: true, status: true },
-      { id: 'extra3', name: '휘핑크림', price: 500, available: true, status: true }
-    ]
-  };
+    fetchMenus();
+    fetchGlobalOptions();
+  }, []);
 
   const handleAddMenu = () => {
     setSelectedMenu(null);

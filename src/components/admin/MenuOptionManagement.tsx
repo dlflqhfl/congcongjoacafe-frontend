@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { MenuItem, MenuOption } from '../../types';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 interface MenuOptionManagementProps {
   isOpen: boolean;
   onClose: () => void;
   menu: MenuItem;
-  globalOptions: {
-    extras: MenuOption[];
-  };
+  globalOptions: MenuOption[];
 }
 
 const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
@@ -19,27 +18,54 @@ const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
   menu,
   globalOptions
 }) => {
-  const [selectedOptions, setSelectedOptions] = useState({
-    extras: menu.options?.extras || []
-  });
+  const [selectedOptions, setSelectedOptions] = useState<MenuOption[]>([]);
   const isMobile = window.innerWidth < 768;
+
+  useEffect(() => {
+    const fetchSelectedOptions = async () => {
+      try {
+        const response = await axios.get(`/admin/menuOptionList`, {
+          params: { mnId: menu.id }
+        });
+        console.log(response.data);
+        const selectedOptionIds = response.data.data.map((option: any) => option.opIdx);
+        const selectedOptions = globalOptions.filter(option => selectedOptionIds.includes(option.id));
+        setSelectedOptions(selectedOptions);
+      } catch (error) {
+        console.error('선택된 옵션을 가져오는 중 오류가 발생했습니다:', error);
+        toast.error('선택된 옵션을 가져오는 중 오류가 발생했습니다.');
+      }
+    };
+
+    if (isOpen) {
+      fetchSelectedOptions();
+    }
+  }, [isOpen, menu.id, globalOptions]);
 
   const handleToggleOption = (option: MenuOption) => {
     setSelectedOptions(prev => {
-      const isSelected = prev.extras.some(o => o.id === option.id);
+      const isSelected = prev.some(o => o.id === option.id);
       return {
         ...prev,
         extras: isSelected
-          ? prev.extras.filter(o => o.id !== option.id)
-          : [...prev.extras, option]
+          ? prev.filter(o => o.id !== option.id)
+          : [...prev, option]
       };
     });
   };
 
-  const handleSave = () => {
-    // API call would go here
-    toast.success('메뉴 옵션이 저장되었습니다');
-    onClose();
+  const handleSave = async () => {
+    try {
+      const selectedOptionIds = selectedOptions.map(option => option.id);
+      await axios.post('/admin/regMenuOption', {
+        mnId: menu.id,
+        opId: selectedOptionIds
+      });
+      toast.success('메뉴 옵션이 저장되었습니다');
+      onClose();
+    } catch (error) {
+      toast.error('메뉴 옵션 저장 중 오류가 발생했습니다');
+    }
   };
 
   const renderOptionList = (title: string, options: MenuOption[]) => (
@@ -47,7 +73,7 @@ const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
       <h3 className="font-medium mb-4">{title}</h3>
       <div className="space-y-2">
         {options.map((option) => {
-          const isSelected = selectedOptions.extras.some(o => o.id === option.id);
+          const isSelected = selectedOptions.some(o => o.id === option.id);
           return (
             <button
               key={option.id}
@@ -123,7 +149,7 @@ const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
             </div>
 
             <div className="space-y-8">
-              {renderOptionList('퍼스널 옵션', globalOptions.extras)}
+              {renderOptionList('퍼스널 옵션', globalOptions)}
             </div>
 
             <div className="flex justify-end space-x-3 mt-8">
