@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, Crown, Plus, ImageIcon } from 'lucide-react';
 import { MenuItem } from '../../types';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 interface MenuFormProps {
   isOpen: boolean;
@@ -10,10 +11,70 @@ interface MenuFormProps {
   menu?: MenuItem | null;
 }
 
+interface ImageFile {
+  url: string;
+  isMain: boolean;
+  alt?: string;
+  file?: File;
+}
+
 const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
-  const [images, setImages] = useState<Array<{ url: string; isMain: boolean }>>([]);
+  const [images, setImages] = useState<ImageFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const isMobile = window.innerWidth < 768;
+  const [allergyInfo, setAllergyInfo] = useState({
+    milk: false,
+    soy: false,
+    egg: false,
+    wheat: false,
+  });
+
+  const [nutrition, setNutrition] = useState({
+    one: '',
+    calories: '',
+    carbo: '',
+    protein: '',
+    fat: '',
+    sodium: '',
+    caffeine: '',
+    sugar: ''
+  });
+
+  useEffect(() => {
+    if (menu) {
+      setImages(menu.images.map(img => ({ 
+        url: img.url,
+        isMain: img.isMain,
+        alt: img.alt,
+        file: undefined })));
+      setAllergyInfo({
+        milk: menu.allergyInfo?.milk || false,
+        soy: menu.allergyInfo?.soy || false,
+        egg: menu.allergyInfo?.egg || false,
+        wheat: menu.allergyInfo?.wheat || false,
+      });
+      setNutrition({
+        one: menu.nutrition?.one ? menu.nutrition.one.toString() : '',
+        calories: menu.nutrition?.calories ? menu.nutrition.calories.toString() : '',
+        carbo: menu.nutrition?.carbo ? menu.nutrition.carbo.toString() : '',
+        protein: menu.nutrition?.protein ? menu.nutrition.protein.toString() : '',
+        fat: menu.nutrition?.fat ? menu.nutrition.fat.toString() : '',
+        sodium: menu.nutrition?.sodium ? menu.nutrition.sodium.toString() : '',
+        caffeine: menu.nutrition?.caffeine ? menu.nutrition.caffeine.toString() : '',
+        sugar: menu.nutrition?.sugar ? menu.nutrition.sugar.toString() : ''
+      });
+    }
+  }, [menu]);
+
+  const handleNutritionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNutrition(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAllergyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setAllergyInfo(prev => ({ ...prev, [name]: checked }));
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -64,7 +125,8 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
         if (e.target?.result) {
           setImages(prev => [...prev, { 
             url: e.target!.result as string, 
-            isMain: prev.length === 0 
+            isMain: prev.length === 0,
+            file: file 
           }]);
         }
       };
@@ -90,15 +152,23 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
     });
   };
 
+  const api = axios.create({
+    baseURL: '/admin',
+  });
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
     // Validate form data
-    const name = formData.get('name') as string;
-    const price = parseInt(formData.get('price') as string);
+    const mnName = formData.get('name') as string;
+    const mnPrice = parseFloat(formData.get('price') as string);
+    const mnCate = formData.get('category') as string;
+    const mnSize = formData.get('size') as string;
+    const mnDetail = formData.get('description') as string;
+    const mnStatus = formData.get('status') as string;
     
-    if (!name || !price) {
+    if (!mnName || !mnPrice || !mnCate || !mnSize || !mnStatus) {
       toast.error('필수 항목을 입력해주세요');
       return;
     }
@@ -109,21 +179,58 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
     }
 
     // Create nutrition object
-    const nutrition = {
-      calories: parseInt(formData.get('calories') as string) || 0,
-      protein: parseFloat(formData.get('protein') as string) || 0,
-      fat: parseFloat(formData.get('fat') as string) || 0,
-      sodium: parseInt(formData.get('sodium') as string) || 0,
-      caffeine: parseInt(formData.get('caffeine') as string) || 0,
-      sugar: parseFloat(formData.get('sugar') as string) || 0
-    };
+  const nutritions = {
+    nOne: parseFloat(nutrition.one.toString()) || 0,
+    nCal: parseFloat(nutrition.calories.toString()) || 0,
+    nCarbo: parseFloat(nutrition.carbo.toString()) || 0,
+    nProtein: parseFloat(nutrition.protein.toString()) || 0,
+    nFat: parseFloat(nutrition.fat.toString()) || 0,
+    nSalt: parseFloat(nutrition.sodium.toString()) || 0,
+    nCaffeine: parseFloat(nutrition.caffeine.toString()) || 0,
+    nSugar: parseFloat(nutrition.sugar.toString()) || 0
+  };
 
-    // Get allergy info
-    const allergyInfo = Array.from(formData.getAll('allergyInfo') as string[]);
+  // Get allergy info
+  const allergies = {
+    aMilk: allergyInfo.milk ? 'TRUE' : 'FALSE',
+    aSoy: allergyInfo.soy ? 'TRUE' : 'FALSE',
+    aEgg: allergyInfo.egg ? 'TRUE' : 'FALSE',
+    aWheat: allergyInfo.wheat ? 'TRUE' : 'FALSE'
+  };
 
-    // Here you would typically send the data to your backend
-    toast.success(menu ? '메뉴가 수정되었습니다' : '메뉴가 등록되었습니다');
-    onClose();
+    console.log('Nutrition Object:', nutritions);
+    console.log('Allergy Object:', allergies);
+    
+    const data = new FormData();
+    data.append('menu', new Blob([JSON.stringify({ mnName, mnPrice, mnCate, mnSize, mnDetail, mnStatus })], { type: "application/json" }));
+    data.append('nutrition', new Blob([JSON.stringify(nutritions)], { type: "application/json" }));
+    data.append('allergy', new Blob([JSON.stringify(allergies)], { type: "application/json" }));
+    images.forEach((img, index) => {
+      if (img.file) {
+        data.append('images', img.file);
+      }
+      data.append('main', new Blob([JSON.stringify(images.map(img => img.isMain))], { type: "application/json" }));
+    });
+
+    // FormData 객체 출력
+    for (let [key, value] of data.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+
+    try {
+      if (menu) {
+        // Update existing menu
+        await axios.put(`/modifiMenu/${menu.id}`, data);
+        toast.success('메뉴가 수정되었습니다');
+      } else {
+        // Create new menu
+        await api.post('/regMenu', data);
+        toast.success('메뉴가 등록되었습니다');
+      }
+      onClose();
+    } catch (error) {
+      toast.error('메뉴 등록 중 오류가 발생했습니다');
+    }
   };
 
   return (
@@ -273,20 +380,6 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    메뉴명 (영문)
-                  </label>
-                  <input
-                    type="text"
-                    name="nameEng"
-                    defaultValue={menu?.nameEng}
-                    required
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
-                             focus:ring-primary focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
                     기본 가격
                   </label>
                   <input
@@ -310,9 +403,26 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
                              focus:ring-primary focus:border-primary"
                   >
-                    <option value="coffee">커피</option>
-                    <option value="non-coffee">논커피</option>
-                    <option value="dessert">디저트</option>
+                    <option value="COFFEE">커피</option>
+                    <option value="NONCOFFEE">논커피</option>
+                    <option value="DESERT">디저트</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    사이즈
+                  </label>
+                  <select
+                    name="size"
+                    defaultValue={menu?.size}
+                    required
+                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
+                             focus:ring-primary focus:border-primary"
+                  >
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
                   </select>
                 </div>
               </div>
@@ -331,82 +441,117 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
                 />
               </div>
 
+                  
+
               {/* Nutrition Info */}
               <div>
                 <h3 className="text-lg font-medium mb-4">영양 성분</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 w-100">
+                      1회 제공량 (ml)
+                    </label>
+                    <input
+                      type="number"
+                      name="one"
+                      value={nutrition.one}
+                      onChange={handleNutritionChange}
+                      className="mt-1 block w-100 rounded-lg border-gray-300 shadow-sm 
+                               focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 w-100">
                       칼로리 (kcal)
                     </label>
                     <input
                       type="number"
                       name="calories"
-                      defaultValue={menu?.nutrition?.calories}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
+                      value={nutrition.calories}
+                      onChange={handleNutritionChange}
+                      className="mt-1 block w-100 rounded-lg border-gray-300 shadow-sm 
                                focus:ring-primary focus:border-primary"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 w-100">
+                      탄수화물 (g)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="carbo"
+                      value={nutrition.carbo}
+                      onChange={handleNutritionChange}
+                      className="mt-1 block w-100 rounded-lg border-gray-300 shadow-sm 
+                               focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 w-100">
                       단백질 (g)
                     </label>
                     <input
                       type="number"
                       step="0.1"
                       name="protein"
-                      defaultValue={menu?.nutrition?.protein}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
+                      value={nutrition.protein}
+                      onChange={handleNutritionChange}
+                      className="mt-1 block w-100 rounded-lg border-gray-300 shadow-sm 
                                focus:ring-primary focus:border-primary"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 w-100">
                       지방 (g)
                     </label>
                     <input
                       type="number"
                       step="0.1"
                       name="fat"
-                      defaultValue={menu?.nutrition?.fat}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
+                      value={nutrition.fat}
+                      onChange={handleNutritionChange}
+                      className="mt-1 block w-100 rounded-lg border-gray-300 shadow-sm 
                                focus:ring-primary focus:border-primary"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 w-100">
                       나트륨 (mg)
                     </label>
                     <input
                       type="number"
                       name="sodium"
-                      defaultValue={menu?.nutrition?.sodium}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
+                      value={nutrition.sodium}
+                      onChange={handleNutritionChange}
+                      className="mt-1 block w-100 rounded-lg border-gray-300 shadow-sm 
                                focus:ring-primary focus:border-primary"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 w-100">
                       카페인 (mg)
                     </label>
                     <input
                       type="number"
                       name="caffeine"
-                      defaultValue={menu?.nutrition?.caffeine}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
+                      value={nutrition.caffeine}
+                      onChange={handleNutritionChange}
+                      className="mt-1 block w-100 rounded-lg border-gray-300 shadow-sm 
                                focus:ring-primary focus:border-primary"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 w-100">
                       당류 (g)
                     </label>
                     <input
                       type="number"
                       step="0.1"
                       name="sugar"
-                      defaultValue={menu?.nutrition?.sugar}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
+                      value={nutrition.sugar}
+                      onChange={handleNutritionChange}
+                      className="mt-1 block w-100 rounded-lg border-gray-300 shadow-sm 
                                focus:ring-primary focus:border-primary"
                     />
                   </div>
@@ -420,19 +565,20 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
                 </label>
                 <div className="space-y-2">
                   {[
-                    '우유', '대두', '계란', '밀', '땅콩', '견과류',
-                    '아황산류', '복숭아', '토마토'
+                    { label: '우유', name: 'milk' },
+                    { label: '대두', name: 'soy' },
+                    { label: '계란', name: 'egg' },
+                    { label: '밀', name: 'wheat' },
                   ].map((allergy) => (
-                    <label key={allergy} className="flex items-center">
+                    <label key={allergy.name} className="flex items-center">
                       <input
                         type="checkbox"
-                        name="allergyInfo"
-                        value={allergy}
-                        defaultChecked={menu?.allergyInfo?.includes(allergy)}
-                        className="rounded border-gray-300 text-primary 
-                                 focus:ring-primary"
+                        name={allergy.name}
+                        checked={allergyInfo[allergy.name as keyof typeof allergyInfo]}
+                        onChange={handleAllergyChange}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
                       />
-                      <span className="ml-2">{allergy}</span>
+                      <span className="ml-2">{allergy.label}</span>
                     </label>
                   ))}
                 </div>
@@ -446,33 +592,25 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
                 <div className="space-y-2">
                   <label className="flex items-center">
                     <input
-                      type="checkbox"
-                      name="isNew"
-                      defaultChecked={menu?.isNew}
+                      type="radio"
+                      name="status"
+                      value="TRUE"
+                      defaultChecked={menu?.status === true}
                       className="rounded border-gray-300 text-primary 
                                focus:ring-primary"
                     />
-                    <span className="ml-2">신메뉴</span>
+                    <span className="ml-2">판매</span>
                   </label>
                   <label className="flex items-center">
                     <input
-                      type="checkbox"
-                      name="isRecommended"
-                      defaultChecked={menu?.isRecommended}
+                      type="radio"
+                      name="status"
+                      value="FALSE"
+                      defaultChecked={menu?.status === false}
                       className="rounded border-gray-300 text-primary 
                                focus:ring-primary"
                     />
-                    <span className="ml-2">추천메뉴</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="isBestSeller"
-                      defaultChecked={menu?.isBestSeller}
-                      className="rounded border-gray-300 text-primary 
-                               focus:ring-primary"
-                    />
-                    <span className="ml-2">베스트셀러</span>
+                    <span className="ml-2">미판매</span>
                   </label>
                 </div>
               </div>

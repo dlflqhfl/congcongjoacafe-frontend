@@ -1,51 +1,41 @@
 export interface MenuItem {
   id: string;
   name: string;
-  nameEng: string;
   description: string;
   price: number;
   category: string;
-  type: 'beverage' | 'food';
-  available: boolean;
+  size: string;
+  status: boolean;
   images: Array<{
     url: string;
+    iName: string;
     isMain: boolean;
     alt?: string;
   }>;
-  isNew: boolean;
-  isRecommended: boolean;
-  isBestSeller: boolean;
   options?: {
-    sizes?: Array<{
-      id: string;
-      name: string;
-      price: number;
-      volume: string;
-      available: boolean;
-    }>;
-    temperatures?: Array<{
-      id: string;
-      name: string;
-      price: number;
-      available: boolean;
-      image: string;
-    }>;
     extras?: Array<{
       id: string;
       name: string;
       price: number;
-      available: boolean;
+      status: boolean;
     }>;
   };
   nutrition: {
+    one: number;
     calories: number;
+    carbo: number;
     protein: number;
     fat: number;
     sodium: number;
     caffeine: number;
     sugar: number;
   };
-  allergyInfo?: string[];
+  allergyInfo: {
+    milk: boolean;
+    soy: boolean;
+    egg: boolean;
+    wheat: boolean;
+  }
 }
 
 export interface CartItem {
@@ -152,8 +142,5 @@ export interface MenuOption {
   id: string;
   name: string;
   price: number;
-  volume?: string;
-  image?: string;
-  ratio?: number;
-  available: boolean;
+  status: boolean;
 }

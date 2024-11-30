@@ -1,18 +1,66 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, Search, Settings } from 'lucide-react';
-import { menuData } from '../../data/menuData';
 import MenuForm from '../../components/admin/MenuForm';
 import GlobalOptionManagement from '../../components/admin/GlobalOptionManagement';
 import MenuOptionManagement from '../../components/admin/MenuOptionManagement';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+import { MenuItem } from '../../types';
 
 const MenuManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isMenuFormOpen, setIsMenuFormOpen] = useState(false);
   const [isGlobalOptionOpen, setIsGlobalOptionOpen] = useState(false);
   const [isMenuOptionOpen, setIsMenuOptionOpen] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState(null);
+  const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
+  const [menus, setMenus] =  useState<MenuItem[]>([]);
+  const s3BaseUrl = 'https://congcongjoa.s3.ap-northeast-2.amazonaws.com/menu/';
+
+  useEffect(() => {
+    const fetchMenus = async () => {
+      try {
+        const response = await axios.get('/admin/menulist'); // API 엔드포인트를 적절히 변경하세요
+        console.log(response.data);
+        const data: MenuItem[] = Array.isArray(response.data.data) ? response.data.data.map((menu: any) => ({
+          id: menu.id,
+          name: menu.mnName,
+          description: menu.mnDetail,
+          price: menu.mnPrice,
+          category: menu.mnCate,
+          size: menu.mnSize,
+          status: menu.mnStatus,
+          images: menu.images.map((image: any) => ({
+            url: `${s3BaseUrl}${image.iName}`,
+            iName: image.iName,
+          })),
+          options: menu.menuOption,
+          nutrition: {
+            one: menu.nOne,
+            calories: menu.nCal,
+            carbo: menu.nCarbo,
+            protein: menu.nProtein,
+            fat: menu.nFat,
+            sodium: menu.nSalt,
+            caffeine: menu.nCaffeine,
+            sugar: menu.nSugar,
+          },
+          allergyInfo: {
+            milk: menu.aMilk === 'TRUE', 
+            soy: menu.aSoy === 'TRUE',
+            egg: menu.aEgg === 'TRUE',
+            wheat: menu.aWheat === 'TRUE',
+          },
+        })) : [];
+        setMenus(data);
+      } catch (error) {
+        console.error('메뉴 데이터를 가져오는 중 오류가 발생했습니다:', error);
+        toast.error('메뉴 데이터를 가져오는 중 오류가 발생했습니다');
+      }
+    };
+
+    fetchMenus();
+  }, []);
 
   // 실제로는 API를 통해 전체 옵션 목록을 가져옴
   const globalOptions = {
@@ -22,9 +70,9 @@ const MenuManagement = () => {
       { id: 'size3', name: 'Grande', price: 500, volume: '473ml', available: true }
     ],
     extras: [
-      { id: 'extra1', name: '샷 추가', price: 500, available: true },
-      { id: 'extra2', name: '시럽 추가', price: 300, available: true },
-      { id: 'extra3', name: '휘핑크림', price: 500, available: true }
+      { id: 'extra1', name: '샷 추가', price: 500, available: true, status: true },
+      { id: 'extra2', name: '시럽 추가', price: 300, available: true, status: true },
+      { id: 'extra3', name: '휘핑크림', price: 500, available: true, status: true }
     ]
   };
 
@@ -33,21 +81,28 @@ const MenuManagement = () => {
     setIsMenuFormOpen(true);
   };
 
-  const handleEditMenu = (menu) => {
+  const handleEditMenu = (menu: MenuItem) => {
     setSelectedMenu(menu);
     setIsMenuFormOpen(true);
   };
 
-  const handleManageOptions = (menu) => {
+  const handleManageOptions = (menu: MenuItem) => {
     setSelectedMenu(menu);
     setIsMenuOptionOpen(true);
   };
 
-  const handleDeleteMenu = (id: string) => {
-    toast.success('메뉴가 삭제되었습니다');
+  const handleDeleteMenu = async (id: string) => {
+    try {
+      await axios.delete(`/api/menus/${id}`); // API 엔드포인트를 적절히 변경하세요
+      setMenus(menus.filter(menu => menu.id !== id));
+      toast.success('메뉴가 삭제되었습니다');
+    } catch (error) {
+      console.error('메뉴 삭제 중 오류가 발생했습니다:', error);
+      toast.error('메뉴 삭제 중 오류가 발생했습니다');
+    }
   };
 
-  const filteredMenus = menuData.filter(menu =>
+  const filteredMenus = menus.filter(menu =>
     menu.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     menu.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -102,6 +157,9 @@ const MenuManagement = () => {
                 카테고리
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                사이즈
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 기본 가격
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -124,7 +182,6 @@ const MenuManagement = () => {
                     />
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900">{menu.name}</div>
-                      <div className="text-sm text-gray-500">{menu.nameEng}</div>
                     </div>
                   </div>
                 </td>
@@ -134,13 +191,16 @@ const MenuManagement = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  {menu.size}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   {menu.price.toLocaleString()}원
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    menu.isNew ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    menu.status ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {menu.isNew ? 'NEW' : '판매중'}
+                    {menu.status ? '판매중' : '미판매'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
