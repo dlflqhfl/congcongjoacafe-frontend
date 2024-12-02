@@ -7,27 +7,30 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import MobileSheet from '../../components/common/MobileSheet';
 import {useOwnerAuthStore} from "../../store/ownerAuthStore.ts";
+import axios, {Axios} from "axios";
+import {ownerAxios} from "../../api/axiosInterceptor.tsx";
 
 const storeSchema = z.object({
-  sName: z.string().min(1, '매장명을 입력하세요') ,
-  phone: z.string().regex(/^\d{2,3}-\d{3,4}-\d{4}$/, '올바른 전화번호 형식이 아닙니다'),
-  postCode: z
+    sName: z.string().min(1, '매장명을 입력하세요') ,
+    ceo: z.string().min(1, '대표자명을 입력해주세요'),
+    phone: z.string().regex(/^\d{2,3}-\d{3,4}-\d{4}$/, '올바른 전화번호 형식이 아닙니다'),
+    postCode: z
       .string()
       .min(1, '우표번호를 입력해 주세요')
       .regex(/^\d{5}$/, '우편번호는 5자리 숫자여야 합니다.'),
-  address: z.string().min(1, '우편번호를 입력해주세요'),
-  addressDetail: z.string().min(1, '주소를 입력해주세요'),
-  businessHours: z.object({
+    address: z.string().min(1, '우편번호를 입력해주세요'),
+    addressDetail: z.string().min(1, '주소를 입력해주세요'),
+    xAxis: z.string().optional(),
+    yAxis: z.string().optional(),
+    businessHours: z.object({
     start: z.string().min(1, '영업 시작 시간을 선택해주세요'),
     end: z.string().min(1, '영업 종료 시간을 선택해주세요')
   }),
-  driveThru: z.boolean(),
-  parking: z.boolean(),
-  wifi: z.boolean(),
-  storeUse: z.boolean(),
-  directions: z.string().optional(),
-  notes: z.string().optional(),
-  ceo: z.string().min(1, '대표자명을 입력해주세요'),
+    driveThru: z.boolean(),
+    parking: z.boolean(),
+    wifi: z.boolean(),
+    storeUse: z.boolean(),
+    directions: z.string().optional(),
 });
 
 type StoreForm = z.infer<typeof storeSchema>;
@@ -39,6 +42,7 @@ const StoreSetup = () => {
   const isMobile = window.innerWidth < 768;
   const sName = useOwnerAuthStore(state => state.sName);
   const [isAddressSheetOpen, setIsAddressSheetOpen] = useState(false);
+  const api = axios.create({"baseURL": "http://localhost:9090/owner/"});
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<StoreForm>({
     resolver: zodResolver(storeSchema),
@@ -55,56 +59,30 @@ const StoreSetup = () => {
     }
   });
 
-
-
   const handleAddressClick = () => {
-if (isMobile) {
-  setIsAddressSheetOpen(true);
-  return;
-} else {
-      new daum.Postcode({
-        oncomplete: function (data) {
-          // 주소 조합
-          let addr = '';
-          let extraAddr = '';
+    window.kakao.maps.load(function() {
+      new window.daum.Postcode({
+        oncomplete: function(data) {
+          const geocoder = new window.kakao.maps.services.Geocoder();
+          geocoder.addressSearch(data.address, function(results, status) {
+            if (status === window.kakao.maps.services.Status.OK) {
+              const geocodeResult = results[0];
+              console.log('Coordinates:', geocodeResult.x, geocodeResult.y);
 
-          if (data.userSelectedType === 'R') {
-            addr = data.roadAddress;
-          } else {
-            addr = data.jibunAddress;
-          }
-
-          if (data.userSelectedType === 'R') {
-            if (data.bname && /[동|로|가]$/g.test(data.bname)) {
-              extraAddr += data.bname;
+              // 폼 필드 업데이트
+              setValue('postCode', data.zonecode);
+              setValue('address', data.address);
+              setValue('xAxis', geocodeResult.x);
+              setValue('yAxis', geocodeResult.y);
+            } else {
+              console.error('주소로부터 좌표를 불러오지 못했습니다.', status);
             }
-            if (data.buildingName && data.apartment === 'Y') {
-              extraAddr += (extraAddr ? ', ' + data.buildingName : data.buildingName);
-            }
-            if (extraAddr) {
-              extraAddr = ' (' + extraAddr + ')';
-            }
-          }
-
-          // 값 설정
-          setValue('postCode', data.zonecode);
-          setValue('address', addr + extraAddr);
-
-          // detailAddress 필드로 커서 이동
-          const detailAddressInput = document.getElementById("detailAddress");
-          if (detailAddressInput) {
-            detailAddressInput.focus();
-          }
+          });
         }
       }).open();
-    }
+    });
   };
 
-  const handleAddressComplete = (data: any) => {
-    setValue('address', data.zonecode);
-    setValue('addressDetail', data.address);
-    setIsAddressSheetOpen(false);
-  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -180,6 +158,7 @@ if (isMobile) {
     });
   };
 
+  //등록 함수
   const onSubmit = async (data: StoreForm) => {
     try {
       if (images.length === 0) {
@@ -187,11 +166,30 @@ if (isMobile) {
         return;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log(data);
+
+      const response = await ownerAxios.post('/stores', {
+        sName: data.sName,
+        ceo: data.ceo,
+        phone: data.phone,
+        postCode: data.postCode,
+        address: data.address,
+        addressDetail: data.addressDetail,
+        xAxis: data.xAxis,
+        yAxis: data.yAxis,
+        businessHours: {},
+        images: images.map(img => img.url),
+      })
+
+      console.log(response.data);
+
+
+
+      /*await new Promise(resolve => setTimeout(resolve, 1000));
       useOwnerAuthStore.getState().setIsFirstLogin(false);
 
       toast.success('매장 정보가 등록되었습니다');
-      navigate('/owner');
+      navigate('/owner');*/
     } catch (error) {
       toast.error('매장 정보 등록에 실패했습니다');
     }
@@ -202,23 +200,6 @@ if (isMobile) {
         <div id="address-search-container" className="h-full"></div>
       </div>
   );
-
-useEffect(() => {
-  if (isAddressSheetOpen && isMobile) {
-    document.getElementById('address-search-container')!.innerHTML = `
-      <iframe
-        src="https://postcode.map.daum.net/guide"
-        style="width: 100%; height: 100%; border: none;"
-        onload="new daum.Postcode({ oncomplete: ${handleAddressComplete} }).embed(this.contentWindow.document.getElementById('address-search-container'));"
-      ></iframe>`;
-  } else if (isAddressSheetOpen) {
-    new daum.Postcode({
-      oncomplete: handleAddressComplete,
-      width: '100%',
-      height: '100%'
-    }).embed(document.getElementById('address-search-container'));
-  }
-}, [isAddressSheetOpen, isMobile]);
 
   const content = (
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -304,7 +285,7 @@ useEffect(() => {
               매장명
             </label>
             <input
-                {...register('name')}
+                {...register('sName')}
                 className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary bg-gray-100 cursor-not-allowed"
                 defaultValue={sName ?? ''}
                 disabled
@@ -388,6 +369,18 @@ useEffect(() => {
             {errors.addressDetail && (
                 <p className="mt-1 text-sm text-red-600">{errors.addressDetail.message}</p>
             )}
+          </div>
+          <div>
+            <input
+                {...register('xAxis')}
+                className="hidden"
+            />
+          </div>
+          <div>
+            <input
+                {...register('yAxis')}
+                className={"hidden"}
+            />
           </div>
         </div>
 
@@ -475,18 +468,6 @@ useEffect(() => {
                 rows={3}
                 className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
                 placeholder="예: 2번 출구에서 도보 5분"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              매장 특이사항
-            </label>
-            <textarea
-                {...register('notes')}
-                rows={3}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
-                placeholder="예: 노트북 사용 가능"
             />
           </div>
         </div>

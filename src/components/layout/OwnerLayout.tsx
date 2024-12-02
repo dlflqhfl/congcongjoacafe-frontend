@@ -12,62 +12,82 @@ import {
     Store
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import useCheckTokenExpiry from "../../hooks/useCheckTokenExpiry.ts";
 import {useOwnerAuthStore} from "../../store/ownerAuthStore.ts";
+import axios from "axios";
 
 
 const OwnerLayout = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const hasShownToast = useRef(false);
+    const api = axios.create({ baseURL: "http://localhost:9090/api/owner" });
 
 
-    const {isFirstLogin} = useOwnerAuthStore();
+
+    const { isLoggedIn, isFirstLogin } = useOwnerAuthStore();
     const sName = useOwnerAuthStore((state) => state.sName);
     const isMobile = window.innerWidth < 768;
 
+    // 페이지 접근 상태 검증 우선
+    useEffect(() => {
+        if (!hasShownToast.current) {
+            // 로그인하지 않은 상태에서 /owner/login 외의 페이지 접근 시 차단
+            if (!isLoggedIn && location.pathname !== "/owner/login") {
+                navigate("/owner/login");
+                toast.error("올바르지 않은 접근입니다");
+                hasShownToast.current = true;
+                return;
+            }
+
+            // 추가 첫 로그인 관련 접근 제어
+            if (!isFirstLogin && location.pathname === "/owner/setup") {
+                navigate("/");
+                toast.error("올바르지 않은 접근입니다");
+                hasShownToast.current = true;
+                return;
+            }
+
+            if (isFirstLogin && location.pathname !== "/owner/setup") {
+                navigate("/owner/setup");
+                toast.error("매장 등록을 먼저 진행해 주십시오.");
+                hasShownToast.current = true;
+                return;
+            }
+        }
+    }, [isLoggedIn, isFirstLogin, location.pathname, navigate]);
+
+    // 세션 만료 검사 훅 사용
     useCheckTokenExpiry();
 
-    useEffect(() => {
-        // 첫 로그인이면서 setup 페이지가 아닌 경우에만 setup으로 리다이렉트
-        if (isFirstLogin && location.pathname !== '/owner/setup') {
+    const handleLogout = async () => {
+        try {
+            // 서버로 로그아웃 요청
+            await api.post('/logout', null, { withCredentials: true });
 
-            navigate('/owner/setup');
-            toast.error('매장 등록을 먼저 진행해 주십시오.');
-            return;
+            // 클라이언트 측 토큰 삭제
+            const deleteCookie = (cookieName: string) => {
+                document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+            };
+
+            deleteCookie('accessToken');
+            deleteCookie('refreshToken');
+
+            localStorage.removeItem('owner-storage');
+
+            // 로그아웃 성공 알림
+            toast.success('로그아웃되었습니다');
+
+            // 로그인 페이지로 이동
+            navigate('/owner/login');
+        } catch (error) {
+            console.error('로그아웃 처리 중 오류 발생:', error);
+            toast.error('로그아웃 실패. 다시 시도해주세요.');
         }
-
-
-        // 첫 로그인이 아닌데 setup 페이지에 접근하려고 하면 메인으로 리다이렉트
-        if (!isFirstLogin && location.pathname === '/owner/setup') {
-            navigate('/owner');
-            toast.error('올바르지 않은 접근입니다');
-        }
-    }, [isFirstLogin, location.pathname, navigate]);
-
-    const handleLogout = () => {
-        // Store clear function
-
-
-        // 쿠키 삭제 함수
-        const deleteCookie = (cookieName: string) => {
-            // 쿠키의 경로 설정에 따라서 path 값을 정해야 합니다.
-            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        };
-
-        // 필요한 쿠키 삭제
-        deleteCookie('accessToken');
-        deleteCookie('refreshToken');
-
-        localStorage.removeItem('owner-storage');
-
-        // 로그아웃 성공 알림
-        toast.success('로그아웃되었습니다');
-
-        // 로그인 페이지로 이동
-        navigate('/owner/login');
     };
+
     const menuItems = [
         {icon: Coffee, label: '메뉴 관리', path: '/owner/menus'},
         {icon: ShoppingBag, label: '주문 관리', path: '/owner/orders'},
