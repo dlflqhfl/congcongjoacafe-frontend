@@ -43,9 +43,21 @@ import StoreEdit from "./pages/owner/StoreEdit.tsx";
 import PasswordChange from "./pages/owner/PasswordChange.tsx";
 import StoreSettings from "./pages/owner/StoreSettings.tsx";
 import { Toaster } from 'react-hot-toast';
+import {useEffect} from "react";
 
 
 const App = () => {
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_API_KEY}&libraries=services,clusterer&autoload=false`;
+    script.async = true;
+
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+  //라우터
   return (
     <BrowserRouter>
       <Routes>
