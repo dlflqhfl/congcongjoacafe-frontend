@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { Mail, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
@@ -11,6 +13,8 @@ const VerifyEmail = () => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes
   const [isResending, setIsResending] = useState(false);
+  const location = useLocation();
+  const formData = location.state; // 전달된 데이터
 
   useEffect(() => {
     if (!verificationEmail) {
@@ -48,17 +52,19 @@ const VerifyEmail = () => {
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
+
+    // 붙여넣은 데이터를 가져와 최대 6글자까지만 사용
     const pastedData = e.clipboardData.getData('text').slice(0, 6);
-    const newCode = [...code];
-    
+
+    // 붙여넣은 데이터를 한 글자씩 입력 필드에 배치
+    const newCode = Array(6).fill('');
     for (let i = 0; i < pastedData.length; i++) {
-      if (/[0-9]/.test(pastedData[i])) {
-        newCode[i] = pastedData[i];
-      }
+      newCode[i] = pastedData[i];
     }
-    
+
     setCode(newCode);
   };
+
 
   const handleResend = async () => {
     try {
@@ -75,22 +81,54 @@ const VerifyEmail = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+  
     const verificationCode = code.join('');
     if (verificationCode.length !== 6) {
-      toast.error('인증 코드 6자리를 모두 입력해주세요');
+      alert('인증 코드 6자리를 모두 입력해주세요');
       return;
     }
-
+  
     try {
-      // API call to verify code
-      toast.success('이메일 인증이 완료되었습니다');
-      setVerificationEmail(null);
-      navigate('/login');
+      const response = await axios.post(
+        `http://localhost:9090/email/${verificationEmail}/authcode`,
+        { code: verificationCode }
+      );
+  
+      if (response.status === 200) {
+        const memberId = response.data; // 서버에서 반환된 ID
+  
+        // 회원가입 데이터 (이전 페이지에서 입력받은 데이터)
+        const registrationData = {
+          email: verificationEmail,
+          memberId, // 인증 성공 시 생성된 ID
+          // 추가 데이터 필요 시 아래에 추가
+        };
+  
+        alert('인증 번호가 맞습니다.');
+
+        console.log(formData);
+
+        // 회원가입 API 호출
+        await axios.post('http://localhost:9090/api/user/register', formData, {
+          headers: {
+            'Content-Type': 'application/json', // 명시적으로 JSON 형식임을 설정
+          },
+        });
+        
+        alert('회원가입이 완료되었습니다');
+        setVerificationEmail(null); // 인증 이메일 상태 초기화
+        navigate('/login'); // 로그인 페이지로 이동
+      }
     } catch (error) {
-      toast.error('잘못된 인증 코드입니다');
+      alert('인증 코드가 올바르지 않습니다');
+  
+      // 인증 코드 입력 필드 초기화
+      setCode(['', '', '', '', '', '']);
+      const firstInput = document.getElementById('code-0');
+      firstInput?.focus(); // 첫 번째 입력 필드에 포커스
     }
   };
+  
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -131,8 +169,8 @@ const VerifyEmail = () => {
                   key={index}
                   id={`code-${index}`}
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]"
+                  inputMode="text" // text로 변경
+                  pattern="[A-Za-z0-9]" // 영어 대소문자와 숫자 허용
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleChange(index, e.target.value)}
@@ -141,15 +179,15 @@ const VerifyEmail = () => {
                   className="w-12 h-12 text-center text-xl font-semibold border-2 rounded-lg
                            focus:ring-2 focus:ring-primary focus:border-primary"
                 />
+
               ))}
             </div>
 
             <div className="flex items-center justify-between mb-6">
               <div className="text-sm">
                 <span className="text-gray-500">남은 시간: </span>
-                <span className={`font-medium ${
-                  timeLeft < 60 ? 'text-red-500' : 'text-gray-900'
-                }`}>
+                <span className={`font-medium ${timeLeft < 60 ? 'text-red-500' : 'text-gray-900'
+                  }`}>
                   {formatTime(timeLeft)}
                 </span>
               </div>

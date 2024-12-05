@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,23 +9,25 @@ import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
+
 const registerSchema = z.object({
-  name: z.string().min(2, '이름은 2자 이상이어야 합니다'),
-  email: z.string().email('올바른 이메일 주소를 입력해주세요'),
-  password: z.string()
+  mName: z.string().min(2, '이름은 2자 이상이어야 합니다'),
+  mEmail: z.string().email('올바른 이메일 주소를 입력해주세요'),
+  mPw: z.string()
     .min(8, '비밀번호는 8자 이상이어야 합니다')
     .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*])/, '영문, 숫자, 특수문자를 포함해야 합니다'),
   confirmPassword: z.string(),
-  phone: z.string().regex(/^01[0-9]-\d{4}-\d{4}$/, '올바른 전화번호 형식을 입력해주세요'),
-}).refine((data) => data.password === data.confirmPassword, {
+  mPhone: z.string().regex(/^01[0-9]-\d{4}-\d{4}$/, '올바른 전화번호 형식을 입력해주세요'),
+}).refine((data) => data.mPw === data.confirmPassword, {
   message: "비밀번호가 일치하지 않습니다",
   path: ["confirmPassword"],
 });
 
 
+
 const checkEmailDuplicate = async (email: string) => {
   try {
-    const response = await fetch(`http://localhost:9090/user/register/duplicate?email=${encodeURIComponent(email)}`);
+    const response = await fetch(`http://localhost:9090/api/user/register/duplicate/${encodeURIComponent(email)}`);
     console.log(response);
     // 응답이 실패했을 경우 예외 처리
     if (!response.ok) {
@@ -43,7 +45,6 @@ const checkEmailDuplicate = async (email: string) => {
 };
 
 
-
 type RegisterForm = z.infer<typeof registerSchema>;
 
 const Register = () => {
@@ -58,21 +59,29 @@ const Register = () => {
     try {
       setIsLoading(true);
       // API call would go here to register user
-      
-      console.log("쿠쿠루");
 
       // 이메일 중복 확인
-      const isDuplicate = await checkEmailDuplicate(data.email);
+      const isDuplicate = await checkEmailDuplicate(data.mEmail);
       if (isDuplicate) {
-        setError("email", { type: "manual", message: "이미 사용 중인 이메일입니다" });
-        return;
+        alert("이미 사용 중인 이메일입니다."); // 경고 메시지 표시
+        setError("mEmail", { type: "manual", message: "이미 사용 중인 이메일입니다" });
+        return; // 실행 중단
       }
 
-      // API 호출로 회원가입 처리
-      setVerificationEmail(data.email);
-      navigate('/verify-email');
-      toast.success('인증 메일이 발송되었습니다');
+      // 이메일 인증 코드 전송
+      const emailResponse = await axios.get(`http://localhost:9090/email/${encodeURIComponent(data.mEmail)}/authcode`);
+      if (emailResponse.status === 200) {
+        setVerificationEmail(data.mEmail);
+        // 이동 시 데이터 전달
+      navigate('/verify-email', {
+        state: { ...data }, // 전달할 데이터
+      });
+        toast.success('인증 메일이 발송되었습니다');
+      } else {
+        throw new Error("이메일 인증 코드 발송 실패");
+      }
     } catch (error) {
+      console.error("회원가입 처리 중 오류:", error);
       toast.error('회원가입 중 오류가 발생했습니다');
     } finally {
       setIsLoading(false);
@@ -107,12 +116,12 @@ const Register = () => {
               <div className="mt-1 relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  {...register('name')}
+                  {...register('mName')}
                   className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
                 />
               </div>
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+              {errors.mName && (
+                <p className="mt-1 text-sm text-red-600">{errors.mName.message}</p>
               )}
             </div>
 
@@ -123,13 +132,13 @@ const Register = () => {
               <div className="mt-1 relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  {...register('email')}
+                  {...register('mEmail')}
                   type="email"
                   className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
                 />
               </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              {errors.mEmail && (
+                <p className="mt-1 text-sm text-red-600">{errors.mEmail.message}</p>
               )}
             </div>
 
@@ -140,13 +149,13 @@ const Register = () => {
               <div className="mt-1 relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  {...register('password')}
+                  {...register('mPw')}
                   type="password"
                   className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
                 />
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              {errors.mPw && (
+                <p className="mt-1 text-sm text-red-600">{errors.mPw.message}</p>
               )}
             </div>
 
@@ -174,13 +183,13 @@ const Register = () => {
               <div className="mt-1 relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  {...register('phone')}
+                  {...register('mPhone')}
                   placeholder="01x-xxxx-xxxx"
                   className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-primary focus:border-primary"
                 />
               </div>
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+              {errors.mPhone && (
+                <p className="mt-1 text-sm text-red-600">{errors.mPhone.message}</p>
               )}
             </div>
 
