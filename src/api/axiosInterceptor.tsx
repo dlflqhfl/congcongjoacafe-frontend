@@ -6,9 +6,20 @@ axios.defaults.withCredentials = true;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // 각 역할별 Axios 인스턴스 생성
-const userAxios = axios.create({ baseURL: `${API_BASE_URL}/user` });
-const ownerAxios = axios.create({ baseURL: `${API_BASE_URL}/owner` });
-const adminAxios = axios.create({ baseURL: `${API_BASE_URL}/admin` });
+const userAxios = axios.create({
+    baseURL: `${API_BASE_URL}/user`,
+    withCredentials: true
+});
+
+const ownerAxios = axios.create({
+    baseURL: `${API_BASE_URL}/owner`,
+    withCredentials: true
+});
+
+const adminAxios = axios.create({
+    baseURL: `${API_BASE_URL}/admin`,
+    withCredentials: true
+});
 
 // 특정 역할의 상태에서 액세스 토큰을 반환하는 함수
 const getAccessTokenForRole = (role: string): string | null => {

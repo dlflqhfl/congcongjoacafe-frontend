@@ -12,6 +12,7 @@ import {useOwnerAuthStore} from "../../store/ownerAuthStore.ts";
 
 const publicApi = axios.create({
     baseURL: 'http://localhost:9090/api/public/owner',
+    withCredentials: true
 });
 
 
