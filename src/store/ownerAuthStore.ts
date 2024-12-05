@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface OwnerAuthStore {
     accessToken: string | null;
@@ -13,28 +14,35 @@ interface OwnerAuthStore {
     isTokenExpired: () => boolean; // 만료 확인
 }
 
-export const useOwnerAuthStore = create<OwnerAuthStore>((set, get) => ({
-    accessToken: null,
-    tokenExpiryTime: null,
-    isFirstLogin: false,
-    sName: null,
-    isLoggedIn: false, // 초기 로그인 상태
-    setAccessToken: (token, expiryTime) => set({
-        accessToken: token,
-        tokenExpiryTime: expiryTime,
-        isLoggedIn: true // 토큰이 설정될 때 로그인 상태로 전환
-    }),
-    setIsFirstLogin: (isFirst) => set({ isFirstLogin: isFirst }),
-    setSName: (sName) => set({ sName }),
-    clearAuth: () => set({
-        accessToken: null,
-        tokenExpiryTime: null,
-        isFirstLogin: false,
-        sName: null,
-        isLoggedIn: false // 로그아웃 시 로그인 상태 설정
-    }),
-    isTokenExpired: () => {
-        const expiryTime = get().tokenExpiryTime;
-        return expiryTime ? Date.now() > expiryTime : true;
-    },
-}));
+export const useOwnerAuthStore = create<OwnerAuthStore>()(
+    persist(
+        (set, get) => ({
+            accessToken: null,
+            tokenExpiryTime: null,
+            isFirstLogin: false,
+            sName: null,
+            isLoggedIn: false, // 초기 로그인 상태
+            setAccessToken: (token, expiryTime) => set({
+                accessToken: token,
+                tokenExpiryTime: expiryTime,
+                isLoggedIn: true // 토큰이 설정될 때 로그인 상태로 전환
+            }),
+            setIsFirstLogin: (isFirst) => set({ isFirstLogin: isFirst }),
+            setSName: (sName) => set({ sName }),
+            clearAuth: () => set({
+                accessToken: null,
+                tokenExpiryTime: null,
+                isFirstLogin: false,
+                sName: null,
+                isLoggedIn: false // 로그아웃 시 로그인 상태 설정
+            }),
+            isTokenExpired: () => {
+                const expiryTime = get().tokenExpiryTime;
+                return expiryTime ? Date.now() > expiryTime : true;
+            },
+        }),
+        {
+            name: 'ownerAuth',
+        }
+    )
+);

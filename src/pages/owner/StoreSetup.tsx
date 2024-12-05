@@ -3,11 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Upload, X, Crown, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+
 import toast from 'react-hot-toast';
 import MobileSheet from '../../components/common/MobileSheet';
 import {useOwnerAuthStore} from "../../store/ownerAuthStore.ts";
-import axios, {Axios} from "axios";
 import {ownerAxios} from "../../api/axiosInterceptor.tsx";
 
 const storeSchema = z.object({
@@ -36,13 +35,10 @@ const storeSchema = z.object({
 type StoreForm = z.infer<typeof storeSchema>;
 
 const StoreSetup = () => {
-  const navigate = useNavigate();
-  const [images, setImages] = useState<Array<{ url: string; isMain: boolean }>>([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const [images, setImages] = useState<Array<{ file: File; isMain: boolean }>>([]);  const [isDragging, setIsDragging] = useState(false);
   const isMobile = window.innerWidth < 768;
   const sName = useOwnerAuthStore(state => state.sName);
   const [isAddressSheetOpen, setIsAddressSheetOpen] = useState(false);
-  const api = axios.create({"baseURL": "http://localhost:9090/owner/"});
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<StoreForm>({
     resolver: zodResolver(storeSchema),
@@ -132,7 +128,7 @@ const StoreSetup = () => {
       reader.onload = (e) => {
         if (e.target?.result) {
           setImages(prev => [...prev, {
-            url: e.target!.result as string,
+            file: new File([e.target!.result as string], "image.jpeg"),
             isMain: prev.length === 0
           }]);
         }
@@ -167,19 +163,37 @@ const StoreSetup = () => {
       }
 
       console.log(data);
+      const formData = new FormData();
 
-      const response = await ownerAxios.post('/stores', {
-        sName: data.sName,
-        ceo: data.ceo,
-        phone: data.phone,
-        postCode: data.postCode,
-        address: data.address,
-        addressDetail: data.addressDetail,
-        xAxis: data.xAxis,
-        yAxis: data.yAxis,
-        businessHours: {},
-        images: images.map(img => img.url),
-      })
+      // 텍스트 데이터 추가
+      formData.append('sName', data.sName);
+      formData.append('ceo', data.ceo);
+      formData.append('phone', data.phone);
+      formData.append('postCode', data.postCode);
+      formData.append('address', data.address);
+      formData.append('addressDetail', data.addressDetail);
+      if (data.xAxis) {
+        formData.append('xAxis', data.xAxis);
+      }
+      if (data.yAxis) {
+        formData.append('yAxis', data.yAxis);
+      }
+
+      images.forEach(({ file, isMain }, index) => {
+        // 이미지 파일을 FormData에 추가
+        formData.append('images', file);
+
+        // 메인 이미지 여부를 추가 속성에 포함 (예: 인덱스로 구분)
+        if (isMain) {
+          formData.append('mainImageIndex', index.toString());
+        }
+      });
+
+      const response = await ownerAxios.post('/stores', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       console.log(response.data);
 

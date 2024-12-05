@@ -23,7 +23,9 @@ const OwnerLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const hasShownToast = useRef(false);
-    const api = axios.create({ baseURL: "http://localhost:9090/api/owner" });
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const api = axios.create({baseURL: `${API_BASE_URL}/owner`});
+    const clearAuth = useOwnerAuthStore((state) => state.clearAuth);
 
 
 
@@ -39,22 +41,18 @@ const OwnerLayout = () => {
                 navigate("/owner/login");
                 toast.error("올바르지 않은 접근입니다");
                 hasShownToast.current = true;
-                return;
             }
 
             // 추가 첫 로그인 관련 접근 제어
-            if (!isFirstLogin && location.pathname === "/owner/setup") {
+            else if (!isFirstLogin && location.pathname === "/owner/setup") {
                 navigate("/");
                 toast.error("올바르지 않은 접근입니다");
                 hasShownToast.current = true;
-                return;
             }
 
-            if (isFirstLogin && location.pathname !== "/owner/setup") {
+            else if (isFirstLogin && location.pathname !== "/owner/setup") {
                 navigate("/owner/setup");
                 toast.error("매장 등록을 먼저 진행해 주십시오.");
-                hasShownToast.current = true;
-                return;
             }
         }
     }, [isLoggedIn, isFirstLogin, location.pathname, navigate]);
@@ -62,26 +60,15 @@ const OwnerLayout = () => {
     // 세션 만료 검사 훅 사용
     useCheckTokenExpiry();
 
+    // 일반 로그아웃 함수 (알림 포함)
     const handleLogout = async () => {
         try {
-            // 서버로 로그아웃 요청
             await api.post('/logout', null, { withCredentials: true });
+            clearAuth();
+            localStorage.removeItem('ownerAuth');
 
-            // 클라이언트 측 토큰 삭제
-            const deleteCookie = (cookieName: string) => {
-                document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-            };
-
-            deleteCookie('accessToken');
-            deleteCookie('refreshToken');
-
-            localStorage.removeItem('owner-storage');
-
-            // 로그아웃 성공 알림
             toast.success('로그아웃되었습니다');
-
-            // 로그인 페이지로 이동
-            navigate('/owner/login');
+            navigate('/');
         } catch (error) {
             console.error('로그아웃 처리 중 오류 발생:', error);
             toast.error('로그아웃 실패. 다시 시도해주세요.');
