@@ -40,7 +40,7 @@ const setAccessTokenForRole = (role: string, token: string) => {
     switch (role) {
         /*case 'user':
             useUserAuthStore.setState({ accessToken: token });
-            break;*/
+            break;
         case 'owner':
             useOwnerAuthStore.setState({ accessToken: token });
             break;
@@ -60,7 +60,7 @@ async function refreshAccessToken(role: string) {
         const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
             // 필요한 파라미터 추가
         });
-        const newAccessToken = response.data.accessToken;
+        const newAccessToken = response.data.data.accessToken;
         setAccessTokenForRole(role, newAccessToken);
     } catch (error) {
         console.error(`Failed to refresh access token for ${role}`, error);

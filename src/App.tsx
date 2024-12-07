@@ -1,4 +1,4 @@
-import {BrowserRouter, Routes, Route, useLocation} from 'react-router-dom';
+import {Routes, Route, useLocation} from 'react-router-dom';
 import AdminLayout from './components/layout/AdminLayout';
 import OwnerLayout from './components/layout/OwnerLayout';
 import Navbar from './components/layout/Navbar';
@@ -42,7 +42,6 @@ import OwnerSales from "./pages/owner/Sales.tsx";
 import StoreEdit from "./pages/owner/StoreEdit.tsx";
 import PasswordChange from "./pages/owner/PasswordChange.tsx";
 import StoreSettings from "./pages/owner/StoreSettings.tsx";
-import { Toaster } from 'react-hot-toast';
 import {useEffect, useRef} from "react";
 import {useOwnerAuthStore} from "./store/ownerAuthStore.ts";
 import axios from "axios";

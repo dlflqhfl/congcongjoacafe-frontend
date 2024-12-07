@@ -35,7 +35,11 @@ const OwnerLogin = () => {
         const fetchStores = async () => {
             try {
                 const response = await publicApi.get('/stores');
-                setStores(response.data.data);
+                console.log("API Response:", response.data);
+
+                const storeNames = response.data.data.map((store: any) => store.s_name);
+                setStores(storeNames);
+                console.log("Mapped Stores:", storeNames);
             } catch (error) {
                 console.error('에러:', error);
             }
@@ -57,7 +61,12 @@ const OwnerLogin = () => {
         try {
             setIsLoading(true);
 
-            const selectedStore = stores.find(store => store.sname === data.sName);
+            console.log(data);
+
+            const selectedStore = stores.find(store => store === data.sName);
+            stores.forEach(store => {
+                console.log(store.sname);
+            });
 
             if (selectedStore) {
                 const response = await publicApi.post('/login', {
@@ -150,9 +159,9 @@ const OwnerLogin = () => {
                                 className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
                             >
                                 <option value="">매장을 선택하세요</option>
-                                {stores.map(store => (
-                                    <option key={store.sname} value={store.sname}>
-                                        {store.sname}
+                                {stores.map((store, index) => (
+                                    <option key={index} value={store}>
+                                        {store}
                                     </option>
                                 ))}
                             </select>
