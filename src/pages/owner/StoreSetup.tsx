@@ -79,7 +79,6 @@ const StoreSetup = () => {
     });
   };
 
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -123,17 +122,18 @@ const StoreSetup = () => {
       return true;
     });
 
-    validFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setImages(prev => [...prev, {
-            file: new File([e.target!.result as string], "image.jpeg"),
-            isMain: prev.length === 0
-          }]);
-        }
-      };
-      reader.readAsDataURL(file);
+    setImages(prev => {
+      const newImages = validFiles.map(file => ({
+        file: file,
+        isMain: false // 기본적으로는 대표 이미지가 아님
+      }));
+
+      // 기존 이미지와 합치는 과정에서 대표 이미지가 없다면, 추가할 이미지 중 첫 번째 이미지를 대표로 설정
+      if (!prev.some(image => image.isMain) && newImages.length > 0) {
+        newImages[0].isMain = true;
+      }
+
+      return [...prev, ...newImages];
     });
   };
 
@@ -162,42 +162,53 @@ const StoreSetup = () => {
         return;
       }
 
-      console.log(data);
+
+
+      const storeDTO = {
+        s_name: data.sName,
+        ceo: data.ceo,
+        s_phone: data.phone,
+        s_address: {
+          postCode: data.postCode,
+          street: data.address,
+          detail: data.addressDetail,
+        },
+        x_axis: data.xAxis,
+        y_axis: data.yAxis,
+        start_end: {
+          start: data.businessHours.start,
+          end: data.businessHours.end
+        },
+      s_drive_thru: data.driveThru ? 'TRUE' : 'FALSE',
+        s_park: data.parking ? 'TRUE' : 'FALSE',
+        s_wifi: data.wifi ? 'TRUE' : 'FALSE',
+        s_store_use: data.storeUse ? 'TRUE' : 'FALSE',
+        directions: data.directions || null,
+      };
+
       const formData = new FormData();
 
-      // 텍스트 데이터 추가
-      formData.append('sName', data.sName);
-      formData.append('ceo', data.ceo);
-      formData.append('phone', data.phone);
-      formData.append('postCode', data.postCode);
-      formData.append('address', data.address);
-      formData.append('addressDetail', data.addressDetail);
-      if (data.xAxis) {
-        formData.append('xAxis', data.xAxis);
-      }
-      if (data.yAxis) {
-        formData.append('yAxis', data.yAxis);
-      }
+      formData.append('store', new Blob([JSON.stringify(storeDTO)], { type: 'application/json' }));
+
 
       images.forEach(({ file, isMain }, index) => {
-        // 이미지 파일을 FormData에 추가
         formData.append('images', file);
-
-        // 메인 이미지 여부를 추가 속성에 포함 (예: 인덱스로 구분)
         if (isMain) {
           formData.append('mainImageIndex', index.toString());
         }
       });
 
-      const response = await ownerAxios.post('/stores', formData, {
+      // Console 로그로 JSON 및 FormData를 점검
+      console.log(JSON.stringify(storeDTO)); // JSON 객체 점검
+      console.log([...formData.entries()]); // FormData 내용 점검
+      const response = await ownerAxios.post('/register', formData, {
+        withCredentials : true,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-
-      console.log(response.data);
-
-
+      
+      console.log(response + "응답결과");
 
       /*await new Promise(resolve => setTimeout(resolve, 1000));
       useOwnerAuthStore.getState().setIsFirstLogin(false);
@@ -241,7 +252,7 @@ const StoreSetup = () => {
                   {images.map((img, index) => (
                       <div key={index} className="relative group">
                         <img
-                            src={img.url}
+                            src={URL.createObjectURL(img.file)}
                             alt={`매장 이미지 ${index + 1}`}
                             className={`w-full aspect-square object-cover rounded-lg ${img.isMain ? 'ring-2 ring-primary' : ''}`}
                         />
