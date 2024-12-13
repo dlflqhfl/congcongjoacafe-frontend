@@ -40,8 +40,10 @@ const setAccessTokenForRole = (role: string, token: string) => {
     switch (role) {
         /*case 'user':
             useUserAuthStore.setState({ accessToken: token });
-            break;
+            break;*/
         case 'owner':
+            console.log(token + "owner");
+            console.log(useOwnerAuthStore.getState());
             useOwnerAuthStore.setState({ accessToken: token });
             break;
         /*case 'admin':
