@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -154,6 +154,24 @@ const StoreSetup = () => {
     });
   };
 
+  const formatDateToCustomString = (date: Date, timeString: string): string => {
+    const [hour, minute] = timeString.split(':').map(Number);
+
+    // Date 객체의 시간 설정
+    const dateTime = new Date(date);
+    dateTime.setHours(hour, minute, 0, 0);
+
+    const year = dateTime.getFullYear();
+    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(dateTime.getDate()).padStart(2, '0');
+    const hours = String(dateTime.getHours()).padStart(2, '0');
+    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
+    const seconds = String(dateTime.getSeconds()).padStart(2, '0');
+
+    // 형식에 맞게 포맷
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  };
+
   //등록 함수
   const onSubmit = async (data: StoreForm) => {
     try {
@@ -161,6 +179,10 @@ const StoreSetup = () => {
         toast.error('최소 1개의 매장 이미지를 등록해주세요');
         return;
       }
+
+      console.log(data.businessHours.start);
+      console.log(data.businessHours.end);
+      const date = new Date();
 
 
 
@@ -175,9 +197,9 @@ const StoreSetup = () => {
         },
         x_axis: data.xAxis,
         y_axis: data.yAxis,
-        start_end: {
-          start: data.businessHours.start,
-          end: data.businessHours.end
+        s_start_end: {
+          start: formatDateToCustomString(date, data.businessHours.start),
+          end: formatDateToCustomString(date, data.businessHours.end),
         },
       s_drive_thru: data.driveThru ? 'TRUE' : 'FALSE',
         s_park: data.parking ? 'TRUE' : 'FALSE',
@@ -202,7 +224,6 @@ const StoreSetup = () => {
       console.log(JSON.stringify(storeDTO)); // JSON 객체 점검
       console.log([...formData.entries()]); // FormData 내용 점검
       const response = await ownerAxios.post('/register', formData, {
-        withCredentials : true,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
