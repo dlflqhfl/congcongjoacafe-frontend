@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import MobileSheet from '../../components/common/MobileSheet';
 import {useOwnerAuthStore} from "../../store/ownerAuthStore.ts";
 import {ownerAxios} from "../../api/axiosInterceptor.tsx";
+import {useNavigate} from "react-router-dom";
 
 const storeSchema = z.object({
     sName: z.string().min(1, '매장명을 입력하세요') ,
@@ -39,6 +40,8 @@ const StoreSetup = () => {
   const isMobile = window.innerWidth < 768;
   const sName = useOwnerAuthStore(state => state.sName);
   const [isAddressSheetOpen, setIsAddressSheetOpen] = useState(false);
+  const navigate = useNavigate();
+  const { setIsFirstLogin } = useOwnerAuthStore.getState();
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<StoreForm>({
     resolver: zodResolver(storeSchema),
@@ -179,9 +182,6 @@ const StoreSetup = () => {
         toast.error('최소 1개의 매장 이미지를 등록해주세요');
         return;
       }
-
-      console.log(data.businessHours.start);
-      console.log(data.businessHours.end);
       const date = new Date();
 
 
@@ -220,24 +220,23 @@ const StoreSetup = () => {
         }
       });
 
-      // Console 로그로 JSON 및 FormData를 점검
-      console.log(JSON.stringify(storeDTO)); // JSON 객체 점검
-      console.log([...formData.entries()]); // FormData 내용 점검
       const response = await ownerAxios.post('/register', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
-      console.log(response + "응답결과");
 
-      /*await new Promise(resolve => setTimeout(resolve, 1000));
-      useOwnerAuthStore.getState().setIsFirstLogin(false);
+      console.log(response.data);
 
-      toast.success('매장 정보가 등록되었습니다');
-      navigate('/owner');*/
-    } catch (error) {
-      toast.error('매장 정보 등록에 실패했습니다');
+      if (response.data.resultCode == 'OK') {
+        toast.success('매장 정보가 등록되었습니다');
+        setIsFirstLogin(false);
+        navigate('/owner');
+      }else {
+        throw new Error('등록 중 오류가 발생했습니다');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || '매장 정보 등록에 실패했습니다');
     }
   };
 

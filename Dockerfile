@@ -3,7 +3,7 @@ FROM node:14 AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
-COPY . .
+COPY src/components .
 RUN npm run build
 
 # Stage 2: Serve the app using NGINX
