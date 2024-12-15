@@ -61,12 +61,9 @@ const OwnerLogin = () => {
         try {
             setIsLoading(true);
 
-            console.log(data);
+
 
             const selectedStore = stores.find(store => store === data.sName);
-            stores.forEach(store => {
-                console.log(store.sname);
-            });
 
             if (selectedStore) {
                 const response = await publicApi.post('/login', {
@@ -74,8 +71,6 @@ const OwnerLogin = () => {
                     sCode: data.sCode,
                     password: data.password,
                 });
-
-                console.log(response.data);
 
                 if (response.data.resultCode === 'USER_LOGIN_SUCCESS') {
                     console.log('로그인 성공:', response.data);

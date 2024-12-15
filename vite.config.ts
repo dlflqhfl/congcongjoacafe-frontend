@@ -1,8 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path' // path 모듈 추가
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),   // '@'를 'src'로 매핑
+      'src': path.resolve(__dirname, './src') // 'src'도 정의
+    },
+  },
   server: {
     port: 3000,
     open: true, // 서버 시작 시 브라우저가 자동으로 열리도록 설정
