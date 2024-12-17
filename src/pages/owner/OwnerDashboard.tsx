@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Bar } from 'react-chartjs-2'
 import {
@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOwnerAuthStore } from "@/store/ownerAuthStore"
 import { ownerAxios } from "@/api/axiosInterceptor"
+import {Coffee, DollarSign, MessageSquare, ShoppingBag} from "lucide-react";
 
 ChartJS.register(
     CategoryScale,
@@ -31,7 +32,7 @@ const OwnerDashboard = () => {
   const sName = useOwnerAuthStore(state => state.sName)
 
   const fetchDashboardStats = async () => {
-    const { data } = await ownerAxios.get('/api/owner/dashboard-stats')
+    const { data } = await ownerAxios.get('/dashboard/stats')
     return data
   }
 
@@ -50,21 +51,25 @@ const OwnerDashboard = () => {
   const stats = [
     {
       title: '오늘의 주문',
+      icon: ShoppingBag,
       value: isLoading ? <Skeleton className="h-8 w-24" /> : orders?.count,
       status: isLoading ? <Skeleton className="h-4 w-20" /> : `대기중: ${orders?.pending}`,
     },
     {
       title: '오늘의 매출',
+      icon: DollarSign,
       value: isLoading ? <Skeleton className="h-8 w-32" /> : `₩${revenue?.total}`,
       status: isLoading ? <Skeleton className="h-4 w-20" /> : revenue?.percentage,
     },
     {
       title: '오늘의 메뉴',
+      icon: Coffee,
       value: isLoading ? <Skeleton className="h-8 w-28" /> : menu?.name,
       status: isLoading ? <Skeleton className="h-4 w-32" /> : `${menu?.sales}개 판매(₩${menu?.revenue})`,
     },
     {
       title: '고객 문의',
+      icon: MessageSquare,
       value: isLoading ? <Skeleton className="h-8 w-24" /> : customers?.total,
       status: isLoading ? <Skeleton className="h-4 w-24" /> : `미답변: ${customers?.unanswered}`,
     },
@@ -169,13 +174,15 @@ const OwnerDashboard = () => {
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-sm text-gray-500 truncate">{stat.title}</p>
                       <div className="bg-primary/10 p-3 rounded-full">
-                        {/* Icon placeholder */}
+                        {React.createElement(stat.icon)}
                       </div>
                     </div>
-                    <div className="flex-grow">
-                      <p className="text-2xl font-semibold break-words">{stat.value}</p>
+                    <div className="flex-grow break-words">
+                      {stat.value}
                     </div>
-                    <p className="text-sm text-primary mt-2 truncate">{stat.status}</p>
+                    <div className="mt-2 text-sm text-primary truncate">
+                      {stat.status}
+                    </div>
                   </div>
                 </motion.div>
             ))}
@@ -191,9 +198,7 @@ const OwnerDashboard = () => {
               <h2 className="text-lg font-semibold mb-4">시간대별 주문</h2>
               {isLoading ? (
                   <div className="h-64 flex items-center justify-center">
-                    <div className="space-y-3">
-                      <Skeleton className="h-[250px] w-[500px]" />
-                    </div>
+                    <Skeleton className="h-[250px] w-[500px]" />
                   </div>
               ) : (
                   <Bar data={dailyOrdersData} options={chartOptions} />
@@ -201,82 +206,57 @@ const OwnerDashboard = () => {
             </motion.div>
 
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                initial={{opacity: 0, y: 20}}
+                animate={{opacity: 1, y: 0}}
+                transition={{delay: 0.5}}
                 className="bg-white p-6 rounded-xl shadow-lg"
             >
               <Tabs defaultValue="orders" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger
-                      value="orders"
-                      className="text-gray-600 hover:bg-primary/10 hover:text-primary rounded-lg transition-colors appearance-none p-2"
-                  >
-                    실시간 주문
-                  </TabsTrigger>
-                  <TabsTrigger
-                      value="topSales"
-                      className="text-gray-600 hover:bg-primary/10 hover:text-primary rounded-lg transition-colors appearance-none p-2"
-                  >
-                    매출 순위 TOP3
-                  </TabsTrigger>
+                  <TabsTrigger value="orders">실시간 주문</TabsTrigger>
+                  <TabsTrigger value="topSales">매출 순위 TOP3</TabsTrigger>
                 </TabsList>
+
+                {/* 실시간 주문 섹션 */}
                 <TabsContent value="orders">
                   <div className="space-y-4 mt-4">
                     {isLoading ? (
-                        <div className="space-y-3">
-                          <Skeleton className="h-[60px] w-full" />
-                          <Skeleton className="h-[60px] w-full" />
-                          <Skeleton className="h-[60px] w-full" />
-                        </div>
+                        <Skeleton className="h-[60px] w-full"/>
                     ) : realTimeOrders.length > 0 ? (
                         realTimeOrders.map((order) => (
-                            <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                              <div>
-                                <div className="flex items-center space-x-2">
-                            <span
-                                className={`w-2 h-2 rounded-full ${
-                                    order.status === 'pending'
-                                        ? 'bg-yellow-400'
-                                        : order.status === 'preparing'
-                                            ? 'bg-blue-400'
-                                            : 'bg-green-400'
-                                }`}
-                            />
+                            <div key={order.id} className="p-4 flex justify-between bg-gray-50 rounded-lg">
+                              <div className="flex flex-col space-y-2">
+                                <div className="flex space-x-2 items-center">
+                  <span
+                      className={`w-2 h-2 rounded-full ${
+                          order.status === 'pending'
+                              ? 'bg-yellow-400'
+                              : order.status === 'preparing'
+                                  ? 'bg-blue-400'
+                                  : 'bg-green-400'
+                      }`}
+                  ></span>
                                   <p className="font-medium">주문 #{order.id}</p>
                                 </div>
-                                <p className="text-sm text-gray-500">{order.items}</p>
-                                <p className="text-xs text-gray-400">{order.time}</p>
-                              </div>
-                              <div className="flex space-x-2">
-                                {order.status === 'pending' && (
-                                    <>
-                                      <button className="px-3 py-1 bg-primary text-white rounded-md">승인</button>
-                                      <button className="px-3 py-1 bg-red-500 text-white rounded-md">거절</button>
-                                    </>
-                                )}
-                                {order.status === 'preparing' && (
-                                    <button className="px-3 py-1 bg-green-500 text-white rounded-md">완료</button>
-                                )}
+                                <div className="text-gray-500 text-sm">{order.items}</div>
+                                <div className="text-gray-400 text-xs">{order.time}</div>
                               </div>
                             </div>
                         ))
                     ) : (
-                        <p>주문 내역이 없습니다.</p>
+                        <div>주문 내역이 없습니다.</div>
                     )}
                   </div>
                 </TabsContent>
+
+                {/* 매출 순위 TOP3 섹션 */}
                 <TabsContent value="topSales">
                   <div className="space-y-4 mt-4">
                     {isLoading ? (
-                        <div className="space-y-3">
-                          <Skeleton className="h-[60px] w-full" />
-                          <Skeleton className="h-[60px] w-full" />
-                          <Skeleton className="h-[60px] w-full" />
-                        </div>
+                        <Skeleton className="h-[60px] w-full"/>
                     ) : topSales.length > 0 ? (
                         topSales.map((item) => (
-                            <div key={item.rank} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div key={item.rank} className="p-4 flex justify-between bg-gray-50 rounded-lg">
                               <div className="flex items-center space-x-4">
                                 <span className="text-2xl font-bold">{item.rank}</span>
                                 <div>
@@ -287,22 +267,13 @@ const OwnerDashboard = () => {
                             </div>
                         ))
                     ) : (
-                        <p>매출 데이터가 없습니다.</p>
+                        <div>매출 데이터가 없습니다.</div>
                     )}
                   </div>
                 </TabsContent>
               </Tabs>
             </motion.div>
           </div>
-
-          {isMobile && (
-              <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t">
-                <div className="flex space-x-4">
-                  <button className="flex-1 py-3 bg-primary text-white rounded-lg">영업 상태 변경</button>
-                  <button className="flex-1 py-3 bg-primary text-white rounded-lg">메뉴 관리</button>
-                </div>
-              </div>
-          )}
         </div>
       </div>
   )
