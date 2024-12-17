@@ -23,7 +23,6 @@ const StoreSettings = () => {
     wifi: true,
     delivery: false,
     directions: '2번 출구에서 도보 5분',
-    notes: '노트북 사용 가능',
     ceo: '홍길동',
     status: 1,
     images: [
@@ -154,10 +153,6 @@ const StoreSettings = () => {
           <div>
             <label className="block text-sm font-medium text-gray-500">찾아오시는 길</label>
             <p className="mt-1">{storeInfo.directions}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-500">매장 특이사항</label>
-            <p className="mt-1">{storeInfo.notes}</p>
           </div>
         </div>
       </div>

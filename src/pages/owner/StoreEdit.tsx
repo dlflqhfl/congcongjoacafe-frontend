@@ -56,7 +56,6 @@ const StoreEdit = () => {
       wifi: true,
       delivery: false,
       directions: '2번 출구에서 도보 5분',
-      notes: '노트북 사용 가능',
       ceo: '홍길동',
       status: 1
     }
