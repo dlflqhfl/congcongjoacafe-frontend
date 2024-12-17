@@ -29,12 +29,12 @@ const StoreInfoModal: React.FC<StoreInfoModalProps> = ({ isOpen, onClose, store 
             <div key={index} className="relative">
               <img
                 src={img.url}
-                alt={`매장 이미지 ${index + 1}`}
+                alt={img.iName}
                 className={`w-full aspect-square object-cover rounded-lg ${
-                  img.isMain ? 'ring-2 ring-primary' : ''
+                  img.iMain ? 'ring-2 ring-primary' : ''
                 }`}
               />
-              {img.isMain && (
+              {img.iMain && (
                 <div className="absolute top-2 left-2 px-2 py-1 bg-primary/90 text-white 
                              text-xs rounded-full flex items-center">
                   <Crown className="w-3 h-3 mr-1" />
@@ -52,7 +52,7 @@ const StoreInfoModal: React.FC<StoreInfoModalProps> = ({ isOpen, onClose, store 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-500">매장명</label>
-            <p className="mt-1">{store.name}</p>
+            <p className="mt-1">{store.sName}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500">대표자명</label>
@@ -60,11 +60,11 @@ const StoreInfoModal: React.FC<StoreInfoModalProps> = ({ isOpen, onClose, store 
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500">전화번호</label>
-            <p className="mt-1">{store.phone}</p>
+            <p className="mt-1">{store.sPhone}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500">운영 상태</label>
-            <p className="mt-1">{store.status === 1 ? '영업중' : '휴업중'}</p>
+            <p className="mt-1">{store.sStatus === 0 ? '영업중' : '폐점'}</p>
           </div>
         </div>
       </div>
@@ -75,15 +75,11 @@ const StoreInfoModal: React.FC<StoreInfoModalProps> = ({ isOpen, onClose, store 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-500">주소</label>
-            <p className="mt-1">{store.address}</p>
+            <p className="mt-1">{store.sAddress.street}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500">상세주소</label>
-            <p className="mt-1">{store.addressDetail}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-500">행정구역</label>
-            <p className="mt-1">{store.region}</p>
+            <p className="mt-1">{store.sAddress.detail}</p>
           </div>
         </div>
       </div>
@@ -94,11 +90,11 @@ const StoreInfoModal: React.FC<StoreInfoModalProps> = ({ isOpen, onClose, store 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-500">시작 시간</label>
-            <p className="mt-1">{store.businessHours.start}</p>
+            <p className="mt-1">{store.sStartEnd.start}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500">종료 시간</label>
-            <p className="mt-1">{store.businessHours.end}</p>
+            <p className="mt-1">{store.sStartEnd.end}</p>
           </div>
         </div>
       </div>
@@ -107,26 +103,30 @@ const StoreInfoModal: React.FC<StoreInfoModalProps> = ({ isOpen, onClose, store 
       <div>
         <h2 className="text-lg font-semibold mb-4">편의시설</h2>
         <div className="flex flex-wrap gap-2">
-          {store.takeout && (
-            <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-              포장 가능
-            </span>
-          )}
-          {store.parking && (
-            <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-              주차 가능
-            </span>
-          )}
-          {store.wifi && (
-            <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-              와이파이
-            </span>
-          )}
-          {store.delivery && (
-            <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-              배달 가능
-            </span>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-500">매장이용 가능여부</label>
+            <p className="mt-1">
+              {store.sStoreUse === 0 ? '매장 이용 가능' : '포장만 가능'}
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-500">와이파이 여부</label>
+            <p className="mt-1">
+              {store.sWifi === 0 ? '와이파이 가능' : '와이파이 불가'}
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-500">주차 여부</label>
+            <p className="mt-1">
+              {store.sPark === 0 ? '주차 가능' : '주차 불가'}
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-500">Drive-Thru 여부</label>
+            <p className="mt-1">
+              {store.sDriveThru === 0 ? 'DriveThru 가능' : 'DriveThru 불가'}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -137,10 +137,6 @@ const StoreInfoModal: React.FC<StoreInfoModalProps> = ({ isOpen, onClose, store 
           <div>
             <label className="block text-sm font-medium text-gray-500">찾아오시는 길</label>
             <p className="mt-1">{store.directions}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-500">매장 특이사항</label>
-            <p className="mt-1">{store.notes}</p>
           </div>
         </div>
       </div>

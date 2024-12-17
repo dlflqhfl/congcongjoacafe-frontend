@@ -40,8 +40,29 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
     sugar: ''
   });
 
+  const [status, setStatus] = useState<string | null>(null);
+
   useEffect(() => {
-    if (menu) {
+    if (isOpen && !menu) {//신규
+      setImages([]);
+      setAllergyInfo({
+        milk: false,
+        soy: false,
+        egg: false,
+        wheat: false,
+      });
+      setNutrition({
+        one: '',
+        calories: '',
+        carbo: '',
+        protein: '',
+        fat: '',
+        sodium: '',
+        caffeine: '',
+        sugar: ''
+      });
+      setStatus(null);
+    } else if (menu) { //수정
       setImages(menu.images.map(img => ({ 
         url: img.url,
         isMain: img.isMain,
@@ -54,17 +75,18 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
         wheat: menu.allergyInfo?.wheat || false,
       });
       setNutrition({
-        one: menu.nutrition?.one ? menu.nutrition.one.toString() : '',
-        calories: menu.nutrition?.calories ? menu.nutrition.calories.toString() : '',
-        carbo: menu.nutrition?.carbo ? menu.nutrition.carbo.toString() : '',
-        protein: menu.nutrition?.protein ? menu.nutrition.protein.toString() : '',
-        fat: menu.nutrition?.fat ? menu.nutrition.fat.toString() : '',
-        sodium: menu.nutrition?.sodium ? menu.nutrition.sodium.toString() : '',
-        caffeine: menu.nutrition?.caffeine ? menu.nutrition.caffeine.toString() : '',
-        sugar: menu.nutrition?.sugar ? menu.nutrition.sugar.toString() : ''
+        one: menu.nutrition?.one ? menu.nutrition.one.toString() : '0',
+        calories: menu.nutrition?.calories ? menu.nutrition.calories.toString() : '0',
+        carbo: menu.nutrition?.carbo ? menu.nutrition.carbo.toString() : '0',
+        protein: menu.nutrition?.protein ? menu.nutrition.protein.toString() : '0',
+        fat: menu.nutrition?.fat ? menu.nutrition.fat.toString() : '0',
+        sodium: menu.nutrition?.sodium ? menu.nutrition.sodium.toString() : '0',
+        caffeine: menu.nutrition?.caffeine ? menu.nutrition.caffeine.toString() : '0',
+        sugar: menu.nutrition?.sugar ? menu.nutrition.sugar.toString() : '0'
       });
+      setStatus(menu.status ? 'TRUE' : 'FALSE');
     }
-  }, [menu]);
+  }, [isOpen, menu]);
 
   const handleNutritionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -74,6 +96,10 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
   const handleAllergyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     setAllergyInfo(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleStatusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setStatus(e.target.value);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -153,7 +179,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
   };
 
   const api = axios.create({
-    baseURL: '/admin',
+    baseURL: '/api/admin',
   });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -220,7 +246,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
     try {
       if (menu) {
         // Update existing menu
-        await axios.put(`/modifiMenu/${menu.id}`, data);
+        await api.put(`/updateMenu/${menu.id}`, data);
         toast.success('메뉴가 수정되었습니다');
       } else {
         // Create new menu
@@ -595,7 +621,8 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
                       type="radio"
                       name="status"
                       value="TRUE"
-                      defaultChecked={menu?.status === true}
+                      checked={status === 'TRUE'}
+                      onChange={handleStatusChange}
                       className="rounded border-gray-300 text-primary 
                                focus:ring-primary"
                     />
@@ -606,7 +633,8 @@ const MenuForm: React.FC<MenuFormProps> = ({ isOpen, onClose, menu }) => {
                       type="radio"
                       name="status"
                       value="FALSE"
-                      defaultChecked={menu?.status === false}
+                      checked={status === 'FALSE'}
+                      onChange={handleStatusChange}
                       className="rounded border-gray-300 text-primary 
                                focus:ring-primary"
                     />

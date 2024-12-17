@@ -16,9 +16,10 @@ export default defineConfig({
         changeOrigin: true,  // 요청의 origin을 target 서버로 변경
         rewrite: (path) => path.replace(/^\/user/, ''), // 경로 변경 (선택 사항)
       },
-      '/admin': {
+      '/api/admin': {
         target: 'http://localhost:9090', 
-        changeOrigin: true,  
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/admin/, '/admin'), // 경로 변경  
       },
     },
   },

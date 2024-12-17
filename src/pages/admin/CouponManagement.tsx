@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, Search, Ticket, Copy, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+import { MenuItem } from '../../types';
 
 interface CouponRule {
   id: string;
@@ -21,7 +23,12 @@ const CouponManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<CouponRule | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMenuPopupOpen, setIsMenuPopupOpen] = useState(false);
+  const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
+  const [menuList, setMenuList] = useState<MenuItem[]>([]);
+  const [selectedMenuIds, setSelectedMenuIds] = useState<number[]>([]);
   const isMobile = window.innerWidth < 768;
+  const s3BaseUrl = 'https://congcongjoa.s3.ap-northeast-2.amazonaws.com/menu/';
 
   // 실제로는 API를 통해 쿠폰 목록을 가져옴
   const coupons: CouponRule[] = [
@@ -39,6 +46,44 @@ const CouponManagement = () => {
     }
   ];
 
+  useEffect(() => {
+    const fetchMenuList = async () => {
+      try {
+        const response = await axios.get('/api/admin/menuList'); // API 엔드포인트를 적절히 변경하세요
+        const data: MenuItem[] = Array.isArray(response.data.data) ? response.data.data.map((menu: any) => ({
+          id: menu.id,
+          name: menu.mnName,
+          price: menu.mnPrice,
+          category: menu.mnCate,
+          size: menu.mnSize,
+          images: menu.images.map((image: any) => ({
+            url: `${s3BaseUrl}${image.iName}`,
+            iName: image.iName,
+          })),
+        })) : [];
+        setMenuList(data);
+      } catch (error) {
+        console.error('메뉴 리스트를 가져오는 중 오류가 발생했습니다:', error);
+        toast.error('메뉴 리스트를 가져오는 중 오류가 발생했습니다');
+      }
+    };
+
+    fetchMenuList();
+  }, []);
+
+  const handleMenuSelect = (menuId: number) => {
+    setSelectedMenuIds((prevSelectedMenuIds) =>
+      prevSelectedMenuIds.includes(menuId)
+        ? prevSelectedMenuIds.filter((id) => id !== menuId)
+        : [...prevSelectedMenuIds, menuId]
+    );
+  };
+
+  const selectedMenuNames = menuList
+    .filter(menu => selectedMenuIds.includes(menu.id))
+    .map(menu => menu.name)
+    .join(', ');
+
   const generateRandomCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -46,6 +91,10 @@ const CouponManagement = () => {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+  };
+
+  const handleMenuPopupClose = () => {
+    setIsMenuPopupOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -61,7 +110,8 @@ const CouponManagement = () => {
       maxDiscount: formData.get('maxDiscount'),
       startDate: formData.get('startDate'),
       endDate: formData.get('endDate'),
-      maxCount: formData.get('maxCount')
+      maxCount: formData.get('maxCount'),
+      menuIds: selectedMenuIds
     };
 
     // API call would go here
@@ -158,7 +208,7 @@ const CouponManagement = () => {
                   </div>
                   {coupon.minOrderAmount && (
                     <div className="text-sm text-gray-500">
-                      최소 주문금액: {coupon.minOrderAmount.toLocaleString()}원
+                      적용대상: {coupon.minOrderAmount.toLocaleString()}원
                     </div>
                   )}
                 </td>
@@ -168,7 +218,7 @@ const CouponManagement = () => {
                   </div>
                   {coupon.maxCount && (
                     <div className="text-sm text-gray-500">
-                      최대 발급 수량: {coupon.maxCount.toLocaleString()}장
+                      사용 가능 횟수: {coupon.maxCount.toLocaleString()}장
                     </div>
                   )}
                 </td>
@@ -316,28 +366,21 @@ const CouponManagement = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      최소 주문금액
+                      적용 대상
                     </label>
-                    <input
-                      name="minOrderAmount"
-                      type="number"
-                      defaultValue={selectedCoupon?.minOrderAmount}
+                    <button
+                      type="button"
+                      onClick={() => setIsMenuPopupOpen(true)}
                       className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
-                               focus:ring-primary focus:border-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      최대 할인금액
-                    </label>
-                    <input
-                      name="maxDiscount"
-                      type="number"
-                      defaultValue={selectedCoupon?.maxDiscount}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
-                               focus:ring-primary focus:border-primary"
-                    />
+                                focus:ring-primary focus:border-primary py-2 px-4 bg-white text-left"
+                    >
+                     {selectedMenuIds.length > 0 ? `${selectedMenuIds.length}개의 메뉴 선택됨` : '메뉴 선택'}
+                    </button>
+                    {selectedMenuIds.length > 0 && (
+                      <div className="mt-2 text-sm text-gray-500">
+                        선택된 메뉴: {selectedMenuNames}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -370,7 +413,7 @@ const CouponManagement = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      최대 발급 수량
+                      사용 가능 횟수
                     </label>
                     <input
                       name="maxCount"
@@ -398,6 +441,61 @@ const CouponManagement = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isMenuPopupOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-lg p-6 w-full max-w-md"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">메뉴 선택</h2>
+                <button
+                  type="button"
+                  onClick={handleMenuPopupClose}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <ul>
+                {menuList.map((menu) => (
+                  <li key={menu.id} className="mb-2 flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedMenuIds.includes(menu.id)}
+                    onChange={() => handleMenuSelect(menu.id)}
+                    className="mr-2"
+                  />
+                  <img src={menu.images[0].url} alt={menu.images[0].alt} className="w-10 h-10 rounded-full mr-2" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{menu.name}</span>
+                    <span className="text-sm text-gray-500">{menu.category} | {menu.size} | {menu.price}원</span>
+                  </div>
+                </li>
+                ))}
+              </ul>
+              <div className="flex justify-end mt-4">
+                <button
+                  type="button"
+                  onClick={handleMenuPopupClose}
+                  className="px-4 py-2 bg-primary text-white rounded-lg"
+                >
+                  확인
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

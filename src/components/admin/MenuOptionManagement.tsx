@@ -24,7 +24,7 @@ const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
   useEffect(() => {
     const fetchSelectedOptions = async () => {
       try {
-        const response = await axios.get(`/admin/menuOptionList`, {
+        const response = await axios.get(`/api/admin/menuOptionList`, {
           params: { mnId: menu.id }
         });
         console.log(response.data);
@@ -45,19 +45,18 @@ const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
   const handleToggleOption = (option: MenuOption) => {
     setSelectedOptions(prev => {
       const isSelected = prev.some(o => o.id === option.id);
-      return {
-        ...prev,
-        extras: isSelected
-          ? prev.filter(o => o.id !== option.id)
-          : [...prev, option]
-      };
+      if (isSelected) {
+        return prev.filter(o => o.id !== option.id);
+      } else {
+        return [...prev, option];
+      }
     });
   };
 
   const handleSave = async () => {
     try {
       const selectedOptionIds = selectedOptions.map(option => option.id);
-      await axios.post('/admin/regMenuOption', {
+      await axios.post('/api/admin/regMenuOption', {
         mnId: menu.id,
         opId: selectedOptionIds
       });
