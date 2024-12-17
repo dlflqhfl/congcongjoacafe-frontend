@@ -7,8 +7,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),   // '@'를 'src'로 매핑
-      'src': path.resolve(__dirname, './src') // 'src'도 정의
+      'src': path.resolve(__dirname, './src'), // 'src'도 정의
     },
+  },
+  define: {
+    global: {}, // 브라우저 환경에서 global 변수를 정의
   },
   server: {
     port: 3000,

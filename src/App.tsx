@@ -45,8 +45,6 @@ import StoreSettings from "./pages/owner/StoreSettings.tsx";
 import {useEffect, useRef} from "react";
 import {useOwnerAuthStore} from "./store/ownerAuthStore.ts";
 import axios from "axios";
-import {useQueryClient} from "@tanstack/react-query";
-
 
 const App = () => {
     const location = useLocation();

@@ -1,27 +1,27 @@
-import axios from 'axios';
-import { useOwnerAuthStore } from "../store/ownerAuthStore.ts";
-import {jwtDecode} from "jwt-decode";
+import axios, { AxiosInstance } from 'axios';
+import { useOwnerAuthStore } from "../store/ownerAuthStore";
+import {jwtDecode} from 'jwt-decode';
+
+// 전역 설정
 axios.defaults.withCredentials = true;
 
+// API 베이스 URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// 각 역할별 Axios 인스턴스 생성
-const userAxios = axios.create({
-    baseURL: `${API_BASE_URL}/user`,
-    withCredentials: true
-});
+// 역할별 Axios 인스턴스 생성 함수
+const createAxiosInstance = (basePath: string): AxiosInstance => {
+    return axios.create({
+        baseURL: `${API_BASE_URL}/${basePath}`,
+        withCredentials: true,
+    });
+};
 
-const ownerAxios = axios.create({
-    baseURL: `${API_BASE_URL}/owner`,
-    withCredentials: true
-});
+// 역할별 Axios 인스턴스
+export const userAxios = createAxiosInstance('user');
+export const ownerAxios = createAxiosInstance('owner');
+export const adminAxios = createAxiosInstance('admin');
 
-const adminAxios = axios.create({
-    baseURL: `${API_BASE_URL}/admin`,
-    withCredentials: true
-});
-
-// 특정 역할의 상태에서 액세스 토큰을 반환하는 함수
+// 공통 유틸리티 함수: Access Token 가져오기
 const getAccessTokenForRole = (role: string): string | null => {
     switch (role) {
         /*case 'user':
@@ -35,69 +35,112 @@ const getAccessTokenForRole = (role: string): string | null => {
     }
 };
 
-// 특정 역할의 상태에 액세스 토큰을 설정하고 Axios 인스턴스에 설정하는 함수
-const setAccessTokenForRole = (role: string, token: string) => {
+// 공통 유틸리티 함수: Access Token 저장하기
+const setAccessTokenForRole = (role: string, token: string): void => {
     switch (role) {
         /*case 'user':
             useUserAuthStore.setState({ accessToken: token });
             break;*/
         case 'owner':
-            console.log(token);
             useOwnerAuthStore.setState({ accessToken: token });
             break;
         /*case 'admin':
             useAdminAuthStore.setState({ accessToken: token });
             break;*/
+        default:
+            break;
     }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    if (role === 'user') userAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    if (role === 'owner') ownerAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    if (role === 'admin') adminAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+    const tokenHeader = `Bearer ${token}`;
+
+    // 역할별 Axios 인스턴스에 Authorization 헤더 설정
+    switch (role) {
+        case 'user':
+            userAxios.defaults.headers.common['Authorization'] = tokenHeader;
+            break;
+        case 'owner':
+            ownerAxios.defaults.headers.common['Authorization'] = tokenHeader;
+            break;
+        case 'admin':
+            adminAxios.defaults.headers.common['Authorization'] = tokenHeader;
+            break;
+        default:
+            break;
+    }
 };
 
-// 만료된 액세스 토큰을 새로 고치는 함수
-async function refreshAccessToken(role: string) {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
-            // 필요한 파라미터 추가
-        });
-        const newAccessToken = response.data.data.accessToken;
-        setAccessTokenForRole(role, newAccessToken);
-    } catch (error) {
-        console.error(`Failed to refresh access token for ${role}`, error);
-        // 추가적인 에러 처리 로직
-    }
-}
-
-// 주어진 토큰이 만료되었거나 만료 직전인지 확인하는 함수
+// 공통 유틸리티 함수: 토큰 만료 여부 확인
 const isTokenExpiredOrAboutToExpire = (token: string): boolean => {
     const { exp } = jwtDecode<{ exp: number }>(token);
-    const currentTime = Date.now() / 1000;
-    return exp < currentTime + 5 * 60; // 5분 이내 만료 예정 시 갱신
+    const currentTime = Math.floor(Date.now() / 1000);
+    return exp < currentTime + 5 * 60; // 만료 5분 전 기준
 };
 
-// 필요에 따라 액세스 토큰을 새로 고치는 함수
-const refreshAccessTokenIfNecessary = async (role: string) => {
+// Access Token 갱신 함수
+const refreshAccessToken = async (role: string): Promise<void> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {}, {
+            headers: {
+                Authorization: `Bearer ${getAccessTokenForRole(role)}`, // 기존 토큰으로 갱신 요청
+            },
+        });
+        const newAccessToken = response.data.data.accessToken;
+        setAccessTokenForRole(role, newAccessToken); // 새 Access Token 저장 및 헤더 업데이트
+    } catch (error) {
+        console.error(`Failed to refresh token for role: ${role}`, error);
+        // 필요한 경우 추가 에러 처리 (예: 로그아웃, 알림 표시)
+    }
+};
+
+// Access Token 갱신이 필요한 경우 처리
+const refreshAccessTokenIfNecessary = async (role: string): Promise<void> => {
     const accessToken = getAccessTokenForRole(role);
     if (!accessToken || isTokenExpiredOrAboutToExpire(accessToken)) {
         await refreshAccessToken(role);
     }
 };
 
-// Axios 인스턴스에 요청을 가로채서 토큰을 새로 고치는 인터셉터 설정 함수
-const setInterceptors = (axiosInstance: any, role: string) => {
+// Axios 인터셉터 등록 함수
+const setInterceptors = (axiosInstance: AxiosInstance, role: string): void => {
+    console.log(`Setting interceptors for role: ${role}`);
+
+    // Request 인터셉터: 모든 요청 전에 실행
     axiosInstance.interceptors.request.use(
-        async (config: any) => {
-            await refreshAccessTokenIfNecessary(role);
+        async (config) => {
+            await refreshAccessTokenIfNecessary(role); // 토큰 갱신이 필요하면 갱신
+            const accessToken = getAccessTokenForRole(role); // 최신 토큰 가져오기
+            if (accessToken) {
+                config.headers = config.headers || {};
+                config.headers['Authorization'] = `Bearer ${accessToken}`; // Authorization 헤더 설정
+            }
             return config;
         },
-        (error: any) => Promise.reject(error)
+        (error) => {
+            console.error('Request interceptor error:', error);
+            return Promise.reject(error);
+        }
+    );
+
+    // Response 인터셉터: 응답 후 처리
+    axiosInstance.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            console.error(`[${role}] Response interceptor error:`, error.response?.data || error.message);
+
+            // 401 에러 발생 시 처리
+            if (error.response?.status === 401) {
+                console.warn(`[${role}] Authentication failed.`);
+                // 로그아웃 또는 재인증 로직 추가
+            }
+
+            return Promise.reject(error);
+        }
     );
 };
 
-// 각 Axios 인스턴스에 인터셉터 설정 적용
-setInterceptors(userAxios, 'user');
-setInterceptors(ownerAxios, 'owner');
-setInterceptors(adminAxios, 'admin');
-
-export { userAxios, ownerAxios, adminAxios };
+// 초기화 함수: 모든 Axios 인스턴스에 인터셉터 등록
+export const initializeAxiosInterceptors = (): void => {
+    setInterceptors(userAxios, 'user');
+    setInterceptors(ownerAxios, 'owner');
+    setInterceptors(adminAxios, 'admin');
+};
