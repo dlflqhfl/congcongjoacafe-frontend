@@ -14,6 +14,7 @@
     "@radix-ui/react-tabs": "^1.1.2",
     "@react-buddy/ide-toolbox": "^2.4.0",
     "@shadcn/ui": "^0.0.4",
+    "@stomp/stompjs": "^7.0.0",
     "@tanstack/react-query": "^5.62.7",
     "axios": "^1.7.7",
     "cafe-order-app": "file:",
@@ -30,6 +31,7 @@
     "react-hook-form": "^7.53.2",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^7.0.1",
+    "sockjs-client": "^1.6.1",
     "tailwind-merge": "^2.5.5",
     "zod": "^3.23.8",
     "zustand": "^5.0.1"
@@ -37,6 +39,7 @@
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/sockjs-client": "^1.5.4",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "@vitejs/plugin-react": "^4.3.3",
