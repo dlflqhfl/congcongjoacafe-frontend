@@ -38,7 +38,7 @@ interface Store {
   sDriveThru: boolean;
   sPark: boolean;
   directions: string;
-  sStatus: number;
+  sStatus: 'REGISTERED' | 'OPEN' | 'CLOSED';
   images: {
     url: string;
     iName: string;
@@ -56,41 +56,46 @@ const StoreManagement = () => {
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('전체');
   const [stores, setStores] = useState<Store[]>([]);
   const isMobile = window.innerWidth < 768;
   const s3BaseUrl = 'https://congcongjoa.s3.ap-northeast-2.amazonaws.com/store/';
+
+  const statuses = ['전체', '등록요청', '운영중', '폐점'];
 
   useEffect(() => {
     const fetchStores = async () => {
       try {
         const response = await axios.get('/api/admin/storeList');
+        console.log('response Stores:', response);
         const data: Store[] = Array.isArray(response.data.data) ? response.data.data.map((store: any)  => ({
           id: store.id,
-          sCode: store.sCode,
-          sName: store.sName,
+          sCode: store.scode,
+          sName: store.s_name,
           sAddress: {
-            postCode: store.sAddress?.postCode || '',
-            street: store.sAddress?.street || '',
-            detail: store.sAddress?.detail || '',
+            postCode: store.s_address?.postCode || '',
+            street: store.s_address?.street || '',
+            detail: store.s_address?.detail || '',
           },
-          sPhone: store.sPhone,
-          sStoreUse: store.sStoreUse,
-          sWifi: store.sWifi,
+          sPhone: store.s_phone,
+          sStoreUse: store.s_store_use,
+          sWifi: store.s_wifi,
           ceo: store.ceo,
           sStartEnd: {
-            start: store.sStartEnd?.start || '',
-            end: store.sStartEnd?.end || '',
+            start: store.s_start_end?.start || '',
+            end: store.s_start_end?.end || '',
           },
-          sDriveThru: store.sDriveThru,
-          sPark: store.sPark,
+          sDriveThru: store.s_drive_thru,
+          sPark: store.s_park,
           directions: store.directions,
-          sStatus: store.sStatus,
+          sStatus: store.sstatus,
           images: store.images.map((image: any) => ({
             url: `${s3BaseUrl}${image.iName}`,
             iName: image.iName,
             isMain: image.iMain,
           })),
         })) : [];
+        console.log('Fetched Stores:', data);
         setStores(data);
       } catch (error) {
         console.error('매장 데이터를 가져오는 중 오류가 발생했습니다:', error);
@@ -210,14 +215,7 @@ const StoreManagement = () => {
         });
 
         if (response.status === 200 && response.data.resultCode === "OK") {
-            toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송됩니다.');
-            // 이메일 발송 요청
-            await api.post('/sendEmail', {
-              storeCode,
-              name,
-              email,
-              initialPassword,
-            });
+            toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송되었습니다.');
         } else {
             toast.error('매장 등록에 실패했습니다.');
         }
@@ -240,9 +238,17 @@ const StoreManagement = () => {
     setIsInfoModalOpen(true);
   };
 
+  const statusMap: { [key: string]: string } = {
+    'REGISTERED': '등록요청',
+    'OPEN': '운영중',
+    'CLOSED': '폐점'
+  };
+
   const filteredStores = stores.filter(store =>
     (store.sName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (store.sAddress.street || '').toLowerCase().includes(searchTerm.toLowerCase())
+  ).filter(store =>
+    selectedStatus === '전체' || statusMap[store.sStatus] === selectedStatus
   );
 
   return (
@@ -261,7 +267,19 @@ const StoreManagement = () => {
       </div>
 
       <div className="mb-6">
-        <div className="relative">
+      <div className="relative flex items-center space-x-4">
+          <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+        >
+          {statuses.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -270,6 +288,7 @@ const StoreManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
           />
+        </div>
         </div>
       </div>
 
@@ -288,9 +307,13 @@ const StoreManagement = () => {
                 <h3 className="text-lg font-semibold">{store.sName}</h3>
               </div>
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                store.sStatus === 0 ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
+                store.sStatus === 'OPEN' ? 'text-green-700 bg-green-100' :
+                store.sStatus === 'CLOSED' ? 'text-red-700 bg-red-100' :
+                'text-yellow-700 bg-yellow-100'
               }`}>
-                {store.sStatus === 0 ? '운영중' : '폐점'}
+                {store.sStatus === 'OPEN' ? '운영중' :
+                store.sStatus === 'CLOSED' ? '폐점' :
+                '등록요청'}
               </span>
             </div>
             
