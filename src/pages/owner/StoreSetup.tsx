@@ -6,7 +6,7 @@ import { Upload, X, Crown, Plus } from 'lucide-react';
 
 import toast from 'react-hot-toast';
 import MobileSheet from '../../components/common/MobileSheet';
-import {useOwnerAuthStore} from "../../store/ownerAuthStore.ts";
+import {useOwnerAuthStore} from "@/store/ownerAuthStore.ts";
 import {ownerAxios} from "../../api/axiosInterceptor.tsx";
 import {useNavigate} from "react-router-dom";
 

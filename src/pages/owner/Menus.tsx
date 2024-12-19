@@ -6,6 +6,8 @@ import OptionManagementModal from '../../components/owner/OptionManagementModal'
 import MenuSelectionModal from '../../components/owner/MenuSelectionModal';
 import { MenuItem } from '../../types';
 import toast from 'react-hot-toast';
+import {ownerAxios} from "@/api/axiosInterceptor.tsx";
+import {useOwnerAuthStore} from "@/store/ownerAuthStore.ts";
 
 const OwnerMenus = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,6 +15,19 @@ const OwnerMenus = () => {
   const [isMenuSelectionOpen, setIsMenuSelectionOpen] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const isMobile = window.innerWidth < 768;
+  const sName = useOwnerAuthStore(state => state.sName);
+
+  const fetchMenus = async () => {
+    const response = await ownerAxios.get('/menus', {
+      params: {
+          sName: sName
+      }
+    });
+
+    return response.data;
+  }
+
+
 
   // 예시 메뉴 데이터
   const storeMenus = [
@@ -86,8 +101,49 @@ const OwnerMenus = () => {
     setIsOptionModalOpen(true);
   };
 
+  const confirmDeleteToast = (onConfirm: () => void) => {
+    toast(
+        (t) => (
+            <div>
+              <p>정말 메뉴를 삭제하시겠습니까?</p>
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                    onClick={() => {
+                      toast.dismiss(t.id); // 확인 버튼 클릭 시 토스트 닫기
+                      onConfirm(); // 삭제 로직 실행
+                    }}
+                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  삭제
+                </button>
+                <button
+                    onClick={() => {
+                      toast.dismiss(t.id); // 취소 버튼 클릭 시 토스트 닫기
+                      toast('삭제가 취소되었습니다', {
+                        icon: '❌', // 원하는 아이콘
+                        style: {
+                          background: '#f8d7da',
+                          color: '#721c24',
+                        }, // 스타일 커스터마이징
+                        duration: 700,
+                      });
+                    }}
+                    className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+        ),
+        { duration: 5000 } // 토스트 유지 시간 (5초)
+    );
+  };
+
   const handleDeleteMenu = (id: string) => {
-    toast.success('메뉴가 삭제되었습니다');
+    confirmDeleteToast(() => {
+      // 실제 삭제 로직 실행
+      toast.success('메뉴가 삭제되었습니다');
+    });
   };
 
   const filteredMenus = storeMenus.filter(menu =>
