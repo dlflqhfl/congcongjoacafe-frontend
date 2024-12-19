@@ -1,5 +1,5 @@
 export interface MenuItem {
-  id: string;
+  id: number;
   name: string;
   description: string;
   price: number;
@@ -139,7 +139,7 @@ export interface Review {
 }
 
 export interface MenuOption {
-  id: string;
+  id: number;
   name: string;
   price: number;
   status: boolean;

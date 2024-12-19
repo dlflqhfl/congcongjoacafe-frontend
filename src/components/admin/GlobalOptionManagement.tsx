@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Edit2, Trash2 } from 'lucide-react';
 import { MenuOption } from '../../types';
@@ -14,36 +14,78 @@ const GlobalOptionManagement: React.FC<GlobalOptionManagementProps> = ({
   isOpen,
   onClose
 }) => {
+  const [globalOptions, setGlobalOptions] = useState<MenuOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<MenuOption | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const isMobile = window.innerWidth < 768;
 
-  // 실제로는 API를 통해 전체 옵션 목록을 가져옴
-  const globalOptions = {
-    extras: [
-      { id: 'extra1', name: '샷 추가', price: 500, status: true },
-      { id: 'extra2', name: '시럽 추가', price: 300, status: true },
-      { id: 'extra3', name: '휘핑크림', price: 500, status: true }
-    ]
+  const fetchOptions = async () => {
+    try {
+      const response = await axios.get('/api/admin/optionList');
+      console.log(response.data);
+      const data: MenuOption[] = Array.isArray(response.data.data) ? response.data.data.map((option: any) => ({
+        id: option.id,
+        name: option.opName,
+        price: option.opPrice,
+        status: option.opStatus,
+      })) : [];
+      setGlobalOptions(data);
+    } catch (error) {
+      console.error('옵션 리스트를 가져오는 데 실패했습니다.', error);
+      toast.error('옵션 리스트를 가져오는 중 오류가 발생했습니다.');
+    }
   };
+
+  useEffect(() => {
+    fetchOptions();
+  }, []);
 
   const handleEditOption = (option: MenuOption) => {
     setSelectedOption(option);
     setIsFormOpen(true);
   };
 
-  const handleDeleteOption = (optionId: string) => {
-    // API call would go here
-    toast.success('옵션이 삭제되었습니다');
-  };
-
+  
   const api = axios.create({
-    baseURL: '/admin',
+    baseURL: '/api/admin',
     headers: {
-        'Content-Type': 'application/json',
+      'Content-Type': 'application/json',
     },
   })
 
+  const handleCheckNameDuplicate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+
+    if (selectedOption && selectedOption.name === name) {
+      setNameError(null);
+      return;
+    }
+
+    const isDuplicate = await checkOptionNameDuplicate(name);
+    if (isDuplicate) {
+      setNameError('사용가능한 옵션명입니다.');
+    } else {
+      setNameError('이미 사용중인 옵션명입니다.');
+    }
+  };
+
+  const checkOptionNameDuplicate = async (optionName: string) => {
+    try {
+      const response = await api.get('/checkOptionName', {
+        params: { optionName }
+      });
+      if (response.status === 200 && response.data.resultCode === "OK") {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error("Error in checkOptionNameDuplicate:", error);
+      return false;
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -52,24 +94,39 @@ const GlobalOptionManagement: React.FC<GlobalOptionManagementProps> = ({
       opName: formData.get('name') as string,
       opPrice: parseFloat(formData.get('price') as string),
     };
-
+    
     try {
       if (selectedOption?.id) {
         // Update existing option
-        await api.put(`/options/${selectedOption.id}`, option);
-        toast.success('옵션이 수정되었습니다');
+        const response = await api.put(`/updateOption/${selectedOption.id}`, option);
+        if (response.status === 200 && response.data.resultCode === "OK") {
+          toast.success('옵션이 수정되었습니다');
+        }
       } else {
         // Create new option
         const response = await api.post('/regOption', option);
         if (response.status === 200 && response.data.resultCode === "OK") {
-        toast.success('옵션이 추가되었습니다');
+          toast.success('옵션이 추가되었습니다');
         }
       }
+      fetchOptions();
     } catch (error) {
       toast.error('옵션 저장 중 오류가 발생했습니다');
     }
-
+    
     setIsFormOpen(false);
+  };
+  
+  const handleDeleteOption = async (optionId: number) => {
+    try {
+      const response = await api.delete(`/deleteOption/${optionId}`);
+      if (response.status === 200 && response.data.resultCode === "OK") {
+        toast.success('옵션이 삭제되었습니다');
+        fetchOptions();
+      } 
+    } catch (error) {
+      toast.error('옵션 삭제 중 오류가 발생했습니다');
+    }
   };
 
   const renderOptionList = (title: string, options: MenuOption[]) => (
@@ -133,7 +190,7 @@ const GlobalOptionManagement: React.FC<GlobalOptionManagementProps> = ({
       </div>
 
       <div className="space-y-8">
-        {renderOptionList('퍼스널 옵션', globalOptions.extras)}
+        {renderOptionList('퍼스널 옵션', globalOptions)}
       </div>
 
       <div className="flex justify-end mt-8">
@@ -177,11 +234,13 @@ const GlobalOptionManagement: React.FC<GlobalOptionManagementProps> = ({
           <input
             name="name"
             type="text"
+            onChange={(e) => handleCheckNameDuplicate(e)}
             defaultValue={selectedOption?.name}
             required
             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
                      focus:ring-primary focus:border-primary"
           />
+          {nameError && <p className="text-red-500">{nameError}</p>}
         </div>
 
         <div>

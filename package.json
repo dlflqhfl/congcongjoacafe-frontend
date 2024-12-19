@@ -15,7 +15,7 @@
     "@react-buddy/ide-toolbox": "^2.4.0",
     "@shadcn/ui": "^0.0.4",
     "@stomp/stompjs": "^7.0.0",
-    "@tanstack/react-query": "^5.62.7",
+    "@tanstack/react-query": "^5.62.8",
     "axios": "^1.7.7",
     "cafe-order-app": "file:",
     "chart.js": "^4.4.6",
