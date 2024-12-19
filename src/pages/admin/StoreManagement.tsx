@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Store, MapPin, Phone, Copy, Mail, Search } from 'lucide-react';
 import StoreInfoModal from '../../components/admin/StoreInfoModal';
@@ -18,6 +18,34 @@ interface StoreRegistrationForm {
   
 }
 
+interface Store {
+  id: string;
+  sCode: string;
+  sName: string;
+  sAddress: {
+    postCode: string;
+    street: string;
+    detail: string;
+  };
+  sPhone: string;
+  sStoreUse: boolean;
+  sWifi: boolean;
+  ceo: string;
+  sStartEnd: {
+    start: string;
+    end: string;
+  };
+  sDriveThru: boolean;
+  sPark: boolean;
+  directions: string;
+  sStatus: 'REGISTERED' | 'OPEN' | 'CLOSED';
+  images: {
+    url: string;
+    iName: string;
+    iMain: boolean;
+  }[];
+}
+
 const StoreManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [storeCredentials, setStoreCredentials] = useState<StoreCredentials | null>(null);
@@ -28,35 +56,56 @@ const StoreManagement = () => {
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('전체');
+  const [stores, setStores] = useState<Store[]>([]);
   const isMobile = window.innerWidth < 768;
+  const s3BaseUrl = 'https://congcongjoa.s3.ap-northeast-2.amazonaws.com/store/';
 
-  // 실제로는 API를 통해 매장 목록을 가져옴
-  const stores = [
-    {
-      id: 'store1',
-      name: '강남점',
-      address: '서울시 강남구 테헤란로 123',
-      addressDetail: '2층',
-      region: '서울시 강남구',
-      phone: '02-1234-5678',
-      businessHours: {
-        start: '09:00',
-        end: '22:00'
-      },
-      takeout: true,
-      parking: true,
-      wifi: true,
-      delivery: false,
-      directions: '2번 출구에서 도보 5분',
-      notes: '노트북 사용 가능',
-      ceo: '홍길동',
-      status: 1,
-      images: [
-        { url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24', isMain: true },
-        { url: 'https://images.unsplash.com/photo-1559925393-8be0ec4767c8', isMain: false }
-      ]
-    }
-  ];
+  const statuses = ['전체', '등록요청', '운영중', '폐점'];
+
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const response = await axios.get('/api/admin/storeList');
+        console.log('response Stores:', response);
+        const data: Store[] = Array.isArray(response.data.data) ? response.data.data.map((store: any)  => ({
+          id: store.id,
+          sCode: store.scode,
+          sName: store.s_name,
+          sAddress: {
+            postCode: store.s_address?.postCode || '',
+            street: store.s_address?.street || '',
+            detail: store.s_address?.detail || '',
+          },
+          sPhone: store.s_phone,
+          sStoreUse: store.s_store_use,
+          sWifi: store.s_wifi,
+          ceo: store.ceo,
+          sStartEnd: {
+            start: store.s_start_end?.start || '',
+            end: store.s_start_end?.end || '',
+          },
+          sDriveThru: store.s_drive_thru,
+          sPark: store.s_park,
+          directions: store.directions,
+          sStatus: store.sstatus,
+          images: store.images.map((image: any) => ({
+            url: `${s3BaseUrl}${image.iName}`,
+            iName: image.iName,
+            isMain: image.iMain,
+          })),
+        })) : [];
+        console.log('Fetched Stores:', data);
+        setStores(data);
+      } catch (error) {
+        console.error('매장 데이터를 가져오는 중 오류가 발생했습니다:', error);
+        toast.error('매장 데이터를 가져오는 중 오류가 발생했습니다.');
+      }
+    };
+
+    fetchStores();
+  }, []);
+
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
@@ -106,7 +155,7 @@ const StoreManagement = () => {
 
   // axios 인스턴스 생성 및 baseURL 설정
   const api = axios.create({
-    baseURL: '/admin',
+    baseURL: '/api/admin',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -166,14 +215,7 @@ const StoreManagement = () => {
         });
 
         if (response.status === 200 && response.data.resultCode === "OK") {
-            toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송됩니다.');
-            // 이메일 발송 요청
-            await api.post('/sendEmail', {
-              storeCode,
-              name,
-              email,
-              initialPassword,
-            });
+            toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송되었습니다.');
         } else {
             toast.error('매장 등록에 실패했습니다.');
         }
@@ -196,9 +238,17 @@ const StoreManagement = () => {
     setIsInfoModalOpen(true);
   };
 
+  const statusMap: { [key: string]: string } = {
+    'REGISTERED': '등록요청',
+    'OPEN': '운영중',
+    'CLOSED': '폐점'
+  };
+
   const filteredStores = stores.filter(store =>
-    store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    store.address.toLowerCase().includes(searchTerm.toLowerCase())
+    (store.sName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (store.sAddress.street || '').toLowerCase().includes(searchTerm.toLowerCase())
+  ).filter(store =>
+    selectedStatus === '전체' || statusMap[store.sStatus] === selectedStatus
   );
 
   return (
@@ -217,7 +267,19 @@ const StoreManagement = () => {
       </div>
 
       <div className="mb-6">
-        <div className="relative">
+      <div className="relative flex items-center space-x-4">
+          <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+        >
+          {statuses.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -226,6 +288,7 @@ const StoreManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
           />
+        </div>
         </div>
       </div>
 
@@ -241,21 +304,27 @@ const StoreManagement = () => {
             <div className="flex items-start justify-between">
               <div className="flex items-center">
                 <Store className="w-5 h-5 text-primary mr-2" />
-                <h3 className="text-lg font-semibold">{store.name}</h3>
+                <h3 className="text-lg font-semibold">{store.sName}</h3>
               </div>
-              <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
-                운영중
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                store.sStatus === 'OPEN' ? 'text-green-700 bg-green-100' :
+                store.sStatus === 'CLOSED' ? 'text-red-700 bg-red-100' :
+                'text-yellow-700 bg-yellow-100'
+              }`}>
+                {store.sStatus === 'OPEN' ? '운영중' :
+                store.sStatus === 'CLOSED' ? '폐점' :
+                '등록요청'}
               </span>
             </div>
             
             <div className="mt-4 space-y-2">
               <div className="flex items-center text-gray-600">
                 <MapPin className="w-4 h-4 mr-2" />
-                <span className="text-sm">{store.address}</span>
+                <span className="text-sm">{store.sAddress.street}</span>
               </div>
               <div className="flex items-center text-gray-600">
                 <Phone className="w-4 h-4 mr-2" />
-                <span className="text-sm">{store.phone}</span>
+                <span className="text-sm">{store.sPhone}</span>
               </div>
             </div>
 

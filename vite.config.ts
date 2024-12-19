@@ -27,9 +27,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/user/, ''),
       },
-      '/admin': {
-        target: 'http://localhost:9090',
+      '/api/admin': {
+        target: 'http://localhost:9090', 
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/admin/, '/admin'), // 경로 변경  
       },
     },
   },
