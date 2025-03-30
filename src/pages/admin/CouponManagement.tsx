@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, Search, Ticket, Copy, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axios from 'axios';
-import { MenuItem } from '../../types';
+import { MenuItem } from '@/types';
+import {adminAxios} from "@/api/axiosInterceptor.tsx";
 
 interface CouponRule {
   id: string;
@@ -49,7 +49,7 @@ const CouponManagement = () => {
   useEffect(() => {
     const fetchMenuList = async () => {
       try {
-        const response = await axios.get('/api/admin/menuList'); // API 엔드포인트를 적절히 변경하세요
+        const response = await adminAxios.get('menuList'); // API 엔드포인트를 적절히 변경하세요
         const data: MenuItem[] = Array.isArray(response.data.data) ? response.data.data.map((menu: any) => ({
           id: menu.id,
           name: menu.mnName,

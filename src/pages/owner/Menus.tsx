@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Trash2, Settings, Plus } from 'lucide-react';
 import { menuData } from '../../data/menuData';
@@ -17,15 +17,45 @@ const OwnerMenus = () => {
   const isMobile = window.innerWidth < 768;
   const sName = useOwnerAuthStore(state => state.sName);
 
-  const fetchMenus = async () => {
-    const response = await ownerAxios.get('/menus', {
-      params: {
-          sName: sName
-      }
-    });
+  const [storeMenus, setStoreMenus] = useState([]); // 상태로 관리
 
-    return response.data;
-  }
+  const fetchMenus = async () => {
+    const fetchMenus = async () => {
+      try {
+        // API 호출
+        const response = await ownerAxios.get("/menus", {
+          params: {
+            sName: sName, // 매장 이름 전달
+          },
+        });
+
+        // 결과 가공
+        const formattedMenus = response.data.map((menu) => ({
+          id: menu.id, // 고유 ID
+          name: menu.name, // 메뉴 이름
+          nameEng: menu.nameEng || "", // 영어 이름 (없으면 빈 값)
+          description: menu.description || "", // 설명
+          price: menu.price, // 가격
+          category: menu.category || "coffee", // 카테고리
+          type: menu.type || "beverage", // 타입
+          available: menu.available ?? true, // 판매 가능 여부 (기본값: true)
+          images: menu.images || [], // 이미지 배열
+          isNew: menu.isNew ?? false, // 신제품 여부
+          isRecommended: menu.isRecommended ?? false, // 추천 여부
+          isBestSeller: menu.isBestSeller ?? false, // 베스트셀러 여부
+          storeId: menu.storeId || "defaultStore", // 매장 ID
+        }));
+
+        // 상태에 저장
+        setStoreMenus(formattedMenus);
+      } catch (error) {
+        console.error("메뉴 데이터를 가져오는 중 오류가 발생했습니다:", error);
+      }
+    };
+
+    useEffect(() => {
+      fetchMenus(); // 초기 데이터 가져오기
+    }, []);
 
 
 

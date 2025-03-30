@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, Search, Settings } from 'lucide-react';
 import MenuForm from '../../components/admin/MenuForm';
 import GlobalOptionManagement from '../../components/admin/GlobalOptionManagement';
 import MenuOptionManagement from '../../components/admin/MenuOptionManagement';
 import toast from 'react-hot-toast';
-import axios from 'axios';
-import { MenuItem, MenuOption } from '../../types';
+import { MenuItem, MenuOption } from '@/types';
+import {adminAxios} from "@/api/axiosInterceptor.tsx";
 
 const MenuManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +23,7 @@ const MenuManagement = () => {
 
   const fetchMenus = async () => {
     try {
-      const response = await axios.get('/api/admin/menuList'); // API 엔드포인트를 적절히 변경하세요
+      const response = await adminAxios.get('/menuList'); // API 엔드포인트를 적절히 변경하세요
       console.log(response.data.data);
       const data: MenuItem[] = Array.isArray(response.data.data) ? response.data.data.map((menu: any) => ({
         id: menu.id,
@@ -63,12 +63,12 @@ const MenuManagement = () => {
   };
 
   useEffect(() => {
-    fetchMenus();
+    fetchMenus().then(() => {});
   }, []);
 
   const fetchGlobalOptions = async () => {
     try {
-      const response = await axios.get('/api/admin/optionList');
+      const response = await adminAxios.get('/optionList');
       console.log(response.data);
       const data: MenuOption[] = Array.isArray(response.data.data) ? response.data.data.map((option: any) => ({
         id: option.id,
@@ -84,7 +84,7 @@ const MenuManagement = () => {
   };
 
   useEffect(() => {
-    fetchGlobalOptions();
+    fetchGlobalOptions().then(() => {});
   }, []);
 
 
@@ -105,7 +105,7 @@ const MenuManagement = () => {
 
   const handleDeleteMenu = async (id: number) => {
     try {
-      await axios.delete(`/api/admin/deleteMenu/${id}`); 
+      await adminAxios.delete(`/deleteMenu/${id}`);
       setMenus(menus.map(menu => menu.id === id ? { ...menu, status: false } : menu));
       toast.success('메뉴가 미판매 상태로 변경되었습니다');
     } catch (error) {
@@ -259,7 +259,7 @@ const MenuManagement = () => {
         isOpen={isMenuFormOpen}
         onClose={() => {
           setIsMenuFormOpen(false);
-          fetchMenus();
+          fetchMenus().then(() => {});
         }}
         menu={selectedMenu}
       />

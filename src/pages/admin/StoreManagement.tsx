@@ -4,6 +4,7 @@ import { Plus, Store, MapPin, Phone, Copy, Mail, Search } from 'lucide-react';
 import StoreInfoModal from '../../components/admin/StoreInfoModal';
 import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
+import {adminAxios} from "@/api/axiosInterceptor.tsx";
 
 interface StoreCredentials {
   storeCode: string;
@@ -66,7 +67,7 @@ const StoreManagement = () => {
   useEffect(() => {
     const fetchStores = async () => {
       try {
-        const response = await axios.get('/api/admin/storeList');
+        const response = await adminAxios.get('storeList');
         console.log('response Stores:', response);
         const data: Store[] = Array.isArray(response.data.data) ? response.data.data.map((store: any)  => ({
           id: store.id,
@@ -123,7 +124,7 @@ const StoreManagement = () => {
 
   const checkStoreNameDuplicate = async (storeName: string) => {
     try {
-      const response = await api.get('/checkStoreName', {
+      const response = await adminAxios.get('checkStoreName', {
         params: { storeName }
       });
       if (response.status === 200 && response.data.resultCode === "OK") {
@@ -153,14 +154,6 @@ const StoreManagement = () => {
     return emailRegex.test(email);
   };
 
-  // axios 인스턴스 생성 및 baseURL 설정
-  const api = axios.create({
-    baseURL: '/api/admin',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-  });
-
   const generateStoreCode = async () => {
     let storeCode;
     let isDuplicate = true;
@@ -170,7 +163,7 @@ const StoreManagement = () => {
       // 중복된 매장 코드가 있는지 확인
       try {
         // 중복된 매장 코드가 있는지 확인
-        const response = await api.get(`/checkStoreCode`, {
+        const response = await adminAxios.get(`checkStoreCode`, {
             params: { storeCode }
         });
         console.log("백엔드 다녀옴", response);
@@ -207,7 +200,7 @@ const StoreManagement = () => {
     const { storeCode, initialPassword, name, email } = formData;
 
     try {
-        const response = await api.post('/regStore', {
+        const response = await adminAxios.post('regStore', {
             storeCode,
             name,
             email,
