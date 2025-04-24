@@ -4,6 +4,10 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import {Link, useNavigate} from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useState } from "react";
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
+import {useAdminAuthStore} from "@/store/adminAuthStore.tsx";
 
 const loginSchema = z.object({
   username: z.string().min(1, '아이디를 입력해주세요'),
@@ -17,13 +21,58 @@ const AdminLogin = () => {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema)
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const {setAccessToken, clearAuth} = useAdminAuthStore();
 
-  const onSubmit = (data: LoginForm) => {
-    if (data.username === 'admin' && data.password === 'admin') {
-      toast.success('관리자로 로그인되었습니다');
-      navigate('/admin');
-    } else {
-      toast.error('아이디 또는 비밀번호가 올바르지 않습니다');
+
+  const publicApi = axios.create({
+    baseURL: 'http://localhost:9090/api/public/admin',
+    withCredentials: true
+  });
+
+  const onSubmit = async (data: LoginForm) => {
+    try {
+      setIsLoading(true);
+
+      // 로그인 요청을 위한 API 호출
+      const response = await publicApi.post('/login', {
+        username: data.username,
+        password: data.password,
+      });
+      console.log(response.data)
+
+      if (response.data.resultCode === 'USER_LOGIN_SUCCESS') {
+        console.log('관리자 로그인 성공:', response.data);
+
+        const newAccessToken = response.data.data.accessToken;
+
+        const decodedToken: { exp: number } = jwtDecode(newAccessToken);
+        const expiryTime = decodedToken.exp * 1000; // 밀리초 단위로 변환
+        setAccessToken(newAccessToken, expiryTime); // 토큰 저장
+        axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`; // 기본 헤더에 토큰 추가
+
+        // 성공 메시지 및 페이지 이동
+        toast.success(response.data.msg || '관리자로 로그인되었습니다');
+        navigate('/admin');
+      } else {
+        console.error('로그인 실패 메시지:', response.data.msg);
+        toast.error(response.data.msg || '로그인에 실패했습니다');
+      }
+    } catch (error) {
+      // 오류 처리
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('로그인 중 에러 발생:', error.response.data);
+        if (error.response.status === 401) {
+          toast.error('잘못된 자격 증명 또는 인증 실패');
+        } else {
+          toast.error(`오류가 발생했습니다: ${error.response.status}`);
+        }
+      } else {
+        console.error('로그인 중 에러 발생:', error);
+        toast.error('로그인에 실패했습니다');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Trash2, Settings, Plus } from 'lucide-react';
 import { menuData } from '../../data/menuData';
@@ -6,6 +6,8 @@ import OptionManagementModal from '../../components/owner/OptionManagementModal'
 import MenuSelectionModal from '../../components/owner/MenuSelectionModal';
 import { MenuItem } from '../../types';
 import toast from 'react-hot-toast';
+import {ownerAxios} from "@/api/axiosInterceptor.tsx";
+import {useOwnerAuthStore} from "@/store/ownerAuthStore.ts";
 
 const OwnerMenus = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,6 +15,49 @@ const OwnerMenus = () => {
   const [isMenuSelectionOpen, setIsMenuSelectionOpen] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const isMobile = window.innerWidth < 768;
+  const sName = useOwnerAuthStore(state => state.sName);
+
+  const [storeMenus, setStoreMenus] = useState([]); // 상태로 관리
+
+  const fetchMenus = async () => {
+    const fetchMenus = async () => {
+      try {
+        // API 호출
+        const response = await ownerAxios.get("/menus", {
+          params: {
+            sName: sName, // 매장 이름 전달
+          },
+        });
+
+        // 결과 가공
+        const formattedMenus = response.data.map((menu) => ({
+          id: menu.id, // 고유 ID
+          name: menu.name, // 메뉴 이름
+          nameEng: menu.nameEng || "", // 영어 이름 (없으면 빈 값)
+          description: menu.description || "", // 설명
+          price: menu.price, // 가격
+          category: menu.category || "coffee", // 카테고리
+          type: menu.type || "beverage", // 타입
+          available: menu.available ?? true, // 판매 가능 여부 (기본값: true)
+          images: menu.images || [], // 이미지 배열
+          isNew: menu.isNew ?? false, // 신제품 여부
+          isRecommended: menu.isRecommended ?? false, // 추천 여부
+          isBestSeller: menu.isBestSeller ?? false, // 베스트셀러 여부
+          storeId: menu.storeId || "defaultStore", // 매장 ID
+        }));
+
+        // 상태에 저장
+        setStoreMenus(formattedMenus);
+      } catch (error) {
+        console.error("메뉴 데이터를 가져오는 중 오류가 발생했습니다:", error);
+      }
+    };
+
+    useEffect(() => {
+      fetchMenus(); // 초기 데이터 가져오기
+    }, []);
+
+
 
   // 예시 메뉴 데이터
   const storeMenus = [
@@ -86,8 +131,49 @@ const OwnerMenus = () => {
     setIsOptionModalOpen(true);
   };
 
+  const confirmDeleteToast = (onConfirm: () => void) => {
+    toast(
+        (t) => (
+            <div>
+              <p>정말 메뉴를 삭제하시겠습니까?</p>
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                    onClick={() => {
+                      toast.dismiss(t.id); // 확인 버튼 클릭 시 토스트 닫기
+                      onConfirm(); // 삭제 로직 실행
+                    }}
+                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  삭제
+                </button>
+                <button
+                    onClick={() => {
+                      toast.dismiss(t.id); // 취소 버튼 클릭 시 토스트 닫기
+                      toast('삭제가 취소되었습니다', {
+                        icon: '❌', // 원하는 아이콘
+                        style: {
+                          background: '#f8d7da',
+                          color: '#721c24',
+                        }, // 스타일 커스터마이징
+                        duration: 700,
+                      });
+                    }}
+                    className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+        ),
+        { duration: 5000 } // 토스트 유지 시간 (5초)
+    );
+  };
+
   const handleDeleteMenu = (id: string) => {
-    toast.success('메뉴가 삭제되었습니다');
+    confirmDeleteToast(() => {
+      // 실제 삭제 로직 실행
+      toast.success('메뉴가 삭제되었습니다');
+    });
   };
 
   const filteredMenus = storeMenus.filter(menu =>

@@ -16,23 +16,6 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true, // 서버 시작 시 브라우저가 자동으로 열리도록 설정
-    proxy: {
-      '/api': {
-        target: 'http://localhost:9090',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/user/register/duplicat': {
-        target: 'http://localhost:9090',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/user/, ''),
-      },
-      '/api/admin': {
-        target: 'http://localhost:9090', 
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/admin/, '/admin'), // 경로 변경  
-      },
-    },
   },
   build: {
     outDir: 'dist', // 빌드시 출력 디렉토리

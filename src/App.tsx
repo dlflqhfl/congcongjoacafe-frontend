@@ -46,6 +46,7 @@ import {useEffect, useRef} from "react";
 import {useOwnerAuthStore} from "./store/ownerAuthStore.ts";
 import axios from "axios";
 
+
 const App = () => {
     const location = useLocation();
     const prevLocation = useRef(location.pathname);

@@ -8,7 +8,7 @@ import toast, {Toaster} from 'react-hot-toast';
 import {Store, Lock} from 'lucide-react';
 import {motion} from 'framer-motion';
 import {jwtDecode} from "jwt-decode";
-import {useOwnerAuthStore} from "../../store/ownerAuthStore.ts";
+import {useOwnerAuthStore} from "@/store/ownerAuthStore.ts";
 
 const publicApi = axios.create({
     baseURL: 'http://localhost:9090/api/public/owner',

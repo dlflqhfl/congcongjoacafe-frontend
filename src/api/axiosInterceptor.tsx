@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { useOwnerAuthStore } from "../store/ownerAuthStore";
 import {jwtDecode} from 'jwt-decode';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
 
 // 전역 설정
 axios.defaults.withCredentials = true;
@@ -28,8 +29,8 @@ const getAccessTokenForRole = (role: string): string | null => {
             return useUserAuthStore.getState().accessToken;*/
         case 'owner':
             return useOwnerAuthStore.getState().accessToken;
-        /*case 'admin':
-            return useAdminAuthStore.getState().accessToken;*/
+        case 'admin':
+            return useAdminAuthStore.getState().accessToken;
         default:
             return null;
     }
@@ -44,9 +45,9 @@ const setAccessTokenForRole = (role: string, token: string): void => {
         case 'owner':
             useOwnerAuthStore.setState({ accessToken: token });
             break;
-        /*case 'admin':
+        case 'admin':
             useAdminAuthStore.setState({ accessToken: token });
-            break;*/
+            break;
         default:
             break;
     }

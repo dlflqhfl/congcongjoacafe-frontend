@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, Mail, Phone } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import {adminAxios} from "@/api/axiosInterceptor.tsx";
 
 interface Member {
   id: number;
@@ -23,7 +24,7 @@ const UserManagement = () => {
 
   const fetchMembers = async () => {
     try {
-      const response = await axios.get('/api/admin/memberList'); // API 엔드포인트를 적절히 변경하세요
+      const response = await adminAxios.get('/memberList'); // API 엔드포인트를 적절히 변경하세요
       const data: Member[] = response.data.data;
       setMembers(data);
     } catch (error) {

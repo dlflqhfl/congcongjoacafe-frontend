@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
+
 import { useQuery } from '@tanstack/react-query'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -32,48 +33,63 @@ const OwnerDashboard = () => {
   const sName = useOwnerAuthStore(state => state.sName)
 
   const fetchDashboardStats = async () => {
-    const { data } = await ownerAxios.get('/dashboard/stats')
+    const { data } = await ownerAxios.get('/dashboard/stats', {
+        params: { sName: sName },
+    })
     return data
   }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboardStats'],
     queryFn: fetchDashboardStats,
-  })
+    initialData: {
+      orders: { count: 0, pending: 0 },
+      revenue: { total: 0, percentage: 0 },
+      menuDTOList: [], // 기본값은 빈 배열
+      customers: { total: 0, unanswered: 0 }, // 기본값 설정
+    },
+  });
 
-  const { orders, revenue, menu, customers } = data || {
-    orders: { count: 0, pending: 0 },
-    revenue: { total: 0, percentage: '0%' },
-    menu: { name: '', sales: 0, revenue: 0 },
-    customers: { total: 0, unanswered: 0 },
-  }
+  // 데이터 구조 분리 및 기본값 설정
+  const orders = data?.orders || { count: 0, pending: 0 };
+  const revenue = data?.revenue || { total: 0, percentage: 0 };
+  const menu = data?.menuDTOList?.[0] || { name: '', sales: 0, revenue: 0 }; // 빈 배열 처리
+  const customers = data?.customers || { total: 0, unanswered: 0 }; // null 대응
 
   const stats = [
     {
       title: '오늘의 주문',
       icon: ShoppingBag,
-      value: isLoading ? <Skeleton className="h-8 w-24" /> : orders?.count,
-      status: isLoading ? <Skeleton className="h-4 w-20" /> : `대기중: ${orders?.pending}`,
+      value: isLoading ? <Skeleton className="h-8 w-24" /> : orders.count,
+      status: isLoading ? <Skeleton className="h-4 w-20" /> : `대기중: ${orders.pending}`,
     },
     {
       title: '오늘의 매출',
       icon: DollarSign,
-      value: isLoading ? <Skeleton className="h-8 w-32" /> : `₩${revenue?.total}`,
-      status: isLoading ? <Skeleton className="h-4 w-20" /> : revenue?.percentage,
+      value: isLoading ? <Skeleton className="h-8 w-32" /> : `₩${revenue.total}`,
+      status: isLoading ? <Skeleton className="h-4 w-20" /> : `${revenue.percentage}%`,
     },
     {
       title: '오늘의 메뉴',
       icon: Coffee,
-      value: isLoading ? <Skeleton className="h-8 w-28" /> : menu?.name,
-      status: isLoading ? <Skeleton className="h-4 w-32" /> : `${menu?.sales}개 판매(₩${menu?.revenue})`,
+      value: isLoading ? <Skeleton className="h-8 w-28" /> : menu.name,
+      status: isLoading ? (
+          <Skeleton className="h-4 w-32" />
+      ) : (
+          `${menu.sales}개 판매(₩${menu.revenue})`
+      ),
     },
     {
       title: '고객 문의',
       icon: MessageSquare,
-      value: isLoading ? <Skeleton className="h-8 w-24" /> : customers?.total,
-      status: isLoading ? <Skeleton className="h-4 w-24" /> : `미답변: ${customers?.unanswered}`,
+      value: isLoading ? <Skeleton className="h-8 w-24" /> : customers.total,
+      status: isLoading ? (
+          <Skeleton className="h-4 w-24" />
+      ) : (
+          `미답변: ${customers.unanswered}`
+      ),
     },
-  ]
+  ];
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
@@ -118,7 +134,7 @@ const OwnerDashboard = () => {
     },
     scales: {
       x: {
-        type: 'category',
+        type: 'category' as const,
         grid: {
           display: false,
         },
@@ -139,11 +155,11 @@ const OwnerDashboard = () => {
 
   const topSales = isLoading
       ? []
-      : [
-        { rank: 1, name: '아메리카노', sales: 52 },
-        { rank: 2, name: '카페라떼', sales: 38 },
-        { rank: 3, name: '바닐라라떼', sales: 25 },
-      ]
+      : (data?.menuDTOList || []).map((item: { name: string; sales: number }, index: number) => ({
+        rank: index + 1,
+        name: item.name,
+        sales: item.sales,
+      }));
 
   return (
       <div className={`${isMobile ? 'h-[calc(100vh-4rem)]' : ''} overflow-auto`}>
@@ -165,9 +181,9 @@ const OwnerDashboard = () => {
             {stats.map((stat, index) => (
                 <motion.div
                     key={stat.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    initial={{opacity: 0, y: 20}}
+                    animate={{opacity: 1, y: 0}}
+                    transition={{delay: index * 0.1}}
                     className="bg-white p-6 rounded-xl shadow-lg"
                 >
                   <div className="flex flex-col h-full">
@@ -177,12 +193,8 @@ const OwnerDashboard = () => {
                         {React.createElement(stat.icon)}
                       </div>
                     </div>
-                    <div className="flex-grow break-words">
-                      {stat.value}
-                    </div>
-                    <div className="mt-2 text-sm text-primary truncate">
-                      {stat.status}
-                    </div>
+                    <div className="flex-grow break-words">{stat.value}</div>
+                    <div className="mt-2 text-sm text-primary truncate">{stat.status}</div>
                   </div>
                 </motion.div>
             ))}
@@ -190,18 +202,18 @@ const OwnerDashboard = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
+                initial={{opacity: 0, y: 20}}
+                animate={{opacity: 1, y: 0}}
+                transition={{delay: 0.4}}
                 className="bg-white p-6 rounded-xl shadow-lg"
             >
               <h2 className="text-lg font-semibold mb-4">시간대별 주문</h2>
               {isLoading ? (
                   <div className="h-64 flex items-center justify-center">
-                    <Skeleton className="h-[250px] w-[500px]" />
+                    <Skeleton className="h-[250px] w-[500px]"/>
                   </div>
               ) : (
-                  <Bar data={dailyOrdersData} options={chartOptions} />
+                  <Bar data={dailyOrdersData} options={chartOptions}/>
               )}
             </motion.div>
 
@@ -253,21 +265,29 @@ const OwnerDashboard = () => {
                 <TabsContent value="topSales">
                   <div className="space-y-4 mt-4">
                     {isLoading ? (
-                        <Skeleton className="h-[60px] w-full"/>
+                        // 로딩 상태 UI
+                        <Skeleton className="h-[60px] w-full" />
                     ) : topSales.length > 0 ? (
+                        // 매출 데이터가 있을 경우
                         topSales.map((item) => (
-                            <div key={item.rank} className="p-4 flex justify-between bg-gray-50 rounded-lg">
+                            <div
+                                key={item.rank}
+                                className="p-4 flex justify-between items-center bg-gray-50 rounded-lg shadow-sm"
+                            >
                               <div className="flex items-center space-x-4">
-                                <span className="text-2xl font-bold">{item.rank}</span>
+                                <span className="text-2xl font-bold text-primary">{item.rank}</span>
                                 <div>
-                                  <p className="font-medium">{item.name}</p>
+                                  <p className="font-medium text-gray-800">{item.name}</p>
                                   <p className="text-sm text-gray-500">{item.sales}잔 판매</p>
                                 </div>
                               </div>
                             </div>
                         ))
                     ) : (
-                        <div>매출 데이터가 없습니다.</div>
+                        // 매출 데이터가 없을 경우
+                        <div className="text-sm text-gray-500 text-center">
+                          매출 데이터가 없습니다.
+                        </div>
                     )}
                   </div>
                 </TabsContent>
