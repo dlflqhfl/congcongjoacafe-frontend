@@ -2,10 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface OwnerStore {
-  storeId: string | null;
-  storeName: string | null;
+  id: number | null;
+  sName: string | null;
   isFirstLogin: boolean;
-  setStore: (storeId: string, storeName: string) => void;
+  setStore: (storeId: number, storeName: string) => void;
   setFirstLogin: (isFirst: boolean) => void;
   clearStore: () => void;
 }
@@ -13,12 +13,12 @@ interface OwnerStore {
 export const useOwnerStore = create<OwnerStore>()(
   persist(
     (set) => ({
-      storeId: null,
-      storeName: null,
+      id: null,
+      sName: null,
       isFirstLogin: false,
-      setStore: (storeId, storeName) => set({ storeId, storeName }),
+      setStore: (id, sName) => set({ id, sName }),
       setFirstLogin: (isFirst) => set({ isFirstLogin: isFirst }),
-      clearStore: () => set({ storeId: null, storeName: null, isFirstLogin: false }),
+      clearStore: () => set({ id: null, sName: null, isFirstLogin: false }),
     }),
     {
       name: 'owner-storage',

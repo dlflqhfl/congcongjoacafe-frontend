@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { MenuItem, MenuOption } from '../../types';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 interface MenuOptionManagementProps {
   isOpen: boolean;
   onClose: () => void;
   menu: MenuItem;
-  globalOptions: {
-    sizes: MenuOption[];
-    extras: MenuOption[];
-  };
+  globalOptions: MenuOption[];
 }
 
 const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
@@ -20,40 +18,65 @@ const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
   menu,
   globalOptions
 }) => {
-  const [selectedOptions, setSelectedOptions] = useState({
-    sizes: menu.options?.sizes || [],
-    extras: menu.options?.extras || []
-  });
+  const [selectedOptions, setSelectedOptions] = useState<MenuOption[]>([]);
   const isMobile = window.innerWidth < 768;
 
-  const handleToggleOption = (option: MenuOption, type: 'sizes' | 'extras') => {
+  useEffect(() => {
+    const fetchSelectedOptions = async () => {
+      try {
+        const response = await axios.get(`/api/admin/menuOptionList`, {
+          params: { mnId: menu.id }
+        });
+        console.log(response.data);
+        const selectedOptionIds = response.data.data.map((option: any) => option.opIdx);
+        const selectedOptions = globalOptions.filter(option => selectedOptionIds.includes(option.id));
+        setSelectedOptions(selectedOptions);
+      } catch (error) {
+        console.error('선택된 옵션을 가져오는 중 오류가 발생했습니다:', error);
+        toast.error('선택된 옵션을 가져오는 중 오류가 발생했습니다.');
+      }
+    };
+
+    if (isOpen) {
+      fetchSelectedOptions();
+    }
+  }, [isOpen, menu.id, globalOptions]);
+
+  const handleToggleOption = (option: MenuOption) => {
     setSelectedOptions(prev => {
-      const isSelected = prev[type].some(o => o.id === option.id);
-      return {
-        ...prev,
-        [type]: isSelected
-          ? prev[type].filter(o => o.id !== option.id)
-          : [...prev[type], option]
-      };
+      const isSelected = prev.some(o => o.id === option.id);
+      if (isSelected) {
+        return prev.filter(o => o.id !== option.id);
+      } else {
+        return [...prev, option];
+      }
     });
   };
 
-  const handleSave = () => {
-    // API call would go here
-    toast.success('메뉴 옵션이 저장되었습니다');
-    onClose();
+  const handleSave = async () => {
+    try {
+      const selectedOptionIds = selectedOptions.map(option => option.id);
+      await axios.post('/api/admin/regMenuOption', {
+        mnId: menu.id,
+        opId: selectedOptionIds
+      });
+      toast.success('메뉴 옵션이 저장되었습니다');
+      onClose();
+    } catch (error) {
+      toast.error('메뉴 옵션 저장 중 오류가 발생했습니다');
+    }
   };
 
-  const renderOptionList = (title: string, options: MenuOption[], type: 'sizes' | 'extras') => (
+  const renderOptionList = (title: string, options: MenuOption[]) => (
     <div>
       <h3 className="font-medium mb-4">{title}</h3>
       <div className="space-y-2">
         {options.map((option) => {
-          const isSelected = selectedOptions[type].some(o => o.id === option.id);
+          const isSelected = selectedOptions.some(o => o.id === option.id);
           return (
             <button
               key={option.id}
-              onClick={() => handleToggleOption(option, type)}
+              onClick={() => handleToggleOption(option)}
               className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                 isSelected ? 'bg-primary/10 border-2 border-primary' : 'bg-white border-2 border-transparent'
               }`}
@@ -65,7 +88,6 @@ const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
                 <p className="text-sm text-gray-500">
                   {option.price > 0 ? `+${option.price.toLocaleString()}원` : 
                    option.price < 0 ? `${option.price.toLocaleString()}원` : '추가 비용 없음'}
-                  {option.volume && ` · ${option.volume}`}
                 </p>
               </div>
               <div className={`w-5 h-5 rounded-full border-2 ${
@@ -126,10 +148,7 @@ const MenuOptionManagement: React.FC<MenuOptionManagementProps> = ({
             </div>
 
             <div className="space-y-8">
-              {menu.type === 'beverage' && (
-                renderOptionList('사이즈', globalOptions.sizes, 'sizes')
-              )}
-              {renderOptionList('퍼스널 옵션', globalOptions.extras, 'extras')}
+              {renderOptionList('퍼스널 옵션', globalOptions)}
             </div>
 
             <div className="flex justify-end space-x-3 mt-8">

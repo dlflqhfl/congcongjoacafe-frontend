@@ -2,12 +2,10 @@ export const menuData = [
   {
     id: '1',
     name: '콩콩 시그니처 아메리카노',
-    nameEng: 'CongCong Signature Americano',
     description: '콩콩조아만의 특별한 블렌딩 원두로 추출한 아메리카노',
     price: 4500,
     category: 'coffee',
-    type: 'beverage',
-    available: true,
+    status: true,
     images: [
       {
         url: 'https://images.unsplash.com/photo-1497515114629-f71d768fd07c',
@@ -25,9 +23,6 @@ export const menuData = [
         alt: '시그니처 아메리카노 각도'
       }
     ],
-    isNew: false,
-    isRecommended: true,
-    isBestSeller: true,
     options: {
       sizes: [
         { id: 'Short', name: 'Short', price: -500, volume: '237ml', available: true },

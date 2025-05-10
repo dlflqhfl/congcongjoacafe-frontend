@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Phone } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 const registerSchema = z.object({
   name: z.string().min(2, '이름은 2자 이상이어야 합니다'),
@@ -21,13 +22,35 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+
+const checkEmailDuplicate = async (email: string) => {
+  try {
+    const response = await fetch(`http://localhost:9090/user/register/duplicate?email=${encodeURIComponent(email)}`);
+    console.log(response);
+    // 응답이 실패했을 경우 예외 처리
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // 응답 데이터를 JSON으로 변환
+    const isDuplicate = await response.json();
+    console.log("Email duplicate check result:", isDuplicate);
+    return isDuplicate;
+  } catch (error) {
+    console.error('Error checking email duplicate:', error);
+    return false; // 에러 발생 시 기본값 false 반환
+  }
+};
+
+
+
 type RegisterForm = z.infer<typeof registerSchema>;
 
 const Register = () => {
   const navigate = useNavigate();
   const { setVerificationEmail } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
+  const { register, handleSubmit, formState: { errors }, setError } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema)
   });
 
@@ -36,10 +59,17 @@ const Register = () => {
       setIsLoading(true);
       // API call would go here to register user
       
-      // Store email for verification
+      console.log("쿠쿠루");
+
+      // 이메일 중복 확인
+      const isDuplicate = await checkEmailDuplicate(data.email);
+      if (isDuplicate) {
+        setError("email", { type: "manual", message: "이미 사용 중인 이메일입니다" });
+        return;
+      }
+
+      // API 호출로 회원가입 처리
       setVerificationEmail(data.email);
-      
-      // Navigate to verification page
       navigate('/verify-email');
       toast.success('인증 메일이 발송되었습니다');
     } catch (error) {

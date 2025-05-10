@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Store, MapPin, Phone, Copy, Mail, Search } from 'lucide-react';
 import StoreInfoModal from '../../components/admin/StoreInfoModal';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+import axios from 'axios';
 
 interface StoreCredentials {
   storeCode: string;
@@ -12,6 +13,37 @@ interface StoreCredentials {
 interface StoreRegistrationForm {
   name: string;
   email: string;
+  storeCode?: string; 
+  initialPassword?: string;
+  
+}
+
+interface Store {
+  id: string;
+  sCode: string;
+  sName: string;
+  sAddress: {
+    postCode: string;
+    street: string;
+    detail: string;
+  };
+  sPhone: string;
+  sStoreUse: boolean;
+  sWifi: boolean;
+  ceo: string;
+  sStartEnd: {
+    start: string;
+    end: string;
+  };
+  sDriveThru: boolean;
+  sPark: boolean;
+  directions: string;
+  sStatus: 'REGISTERED' | 'OPEN' | 'CLOSED';
+  images: {
+    url: string;
+    iName: string;
+    iMain: boolean;
+  }[];
 }
 
 const StoreManagement = () => {
@@ -21,41 +53,137 @@ const StoreManagement = () => {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<any>(null);
   const [formData, setFormData] = useState<StoreRegistrationForm>({ name: '', email: '' });
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('전체');
+  const [stores, setStores] = useState<Store[]>([]);
   const isMobile = window.innerWidth < 768;
+  const s3BaseUrl = 'https://congcongjoa.s3.ap-northeast-2.amazonaws.com/store/';
 
-  // 실제로는 API를 통해 매장 목록을 가져옴
-  const stores = [
-    {
-      id: 'store1',
-      name: '강남점',
-      address: '서울시 강남구 테헤란로 123',
-      addressDetail: '2층',
-      region: '서울시 강남구',
-      phone: '02-1234-5678',
-      businessHours: {
-        start: '09:00',
-        end: '22:00'
-      },
-      takeout: true,
-      parking: true,
-      wifi: true,
-      delivery: false,
-      directions: '2번 출구에서 도보 5분',
-      notes: '노트북 사용 가능',
-      ceo: '홍길동',
-      status: 1,
-      images: [
-        { url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24', isMain: true },
-        { url: 'https://images.unsplash.com/photo-1559925393-8be0ec4767c8', isMain: false }
-      ]
+  const statuses = ['전체', '등록요청', '운영중', '폐점'];
+
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const response = await axios.get('/api/admin/storeList');
+        console.log('response Stores:', response);
+        const data: Store[] = Array.isArray(response.data.data) ? response.data.data.map((store: any)  => ({
+          id: store.id,
+          sCode: store.scode,
+          sName: store.s_name,
+          sAddress: {
+            postCode: store.s_address?.postCode || '',
+            street: store.s_address?.street || '',
+            detail: store.s_address?.detail || '',
+          },
+          sPhone: store.s_phone,
+          sStoreUse: store.s_store_use,
+          sWifi: store.s_wifi,
+          ceo: store.ceo,
+          sStartEnd: {
+            start: store.s_start_end?.start || '',
+            end: store.s_start_end?.end || '',
+          },
+          sDriveThru: store.s_drive_thru,
+          sPark: store.s_park,
+          directions: store.directions,
+          sStatus: store.sstatus,
+          images: store.images.map((image: any) => ({
+            url: `${s3BaseUrl}${image.iName}`,
+            iName: image.iName,
+            isMain: image.iMain,
+          })),
+        })) : [];
+        console.log('Fetched Stores:', data);
+        setStores(data);
+      } catch (error) {
+        console.error('매장 데이터를 가져오는 중 오류가 발생했습니다:', error);
+        toast.error('매장 데이터를 가져오는 중 오류가 발생했습니다.');
+      }
+    };
+
+    fetchStores();
+  }, []);
+
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    setFormData(prev => ({ ...prev, name }));
+  };
+
+  const handleCheckNameDuplicate = async () => {
+    const isDuplicate = await checkStoreNameDuplicate(formData.name);
+    if (isDuplicate) {
+      setNameError('사용가능한 매장명입니다.');
+    } else {
+      setNameError('이미 사용중인 매장명입니다.');
     }
-  ];
+  };
 
-  const generateStoreCode = () => {
+  const checkStoreNameDuplicate = async (storeName: string) => {
+    try {
+      const response = await api.get('/checkStoreName', {
+        params: { storeName }
+      });
+      if (response.status === 200 && response.data.resultCode === "OK") {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error("Error in checkStoreNameDuplicate:", error);
+      return false;
+    }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const email = e.target.value;
+    setFormData(prev => ({ ...prev, email }));
+
+    if (!isValidEmail(email)) {
+      setEmailError('유효한 이메일 주소를 입력하세요.');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // axios 인스턴스 생성 및 baseURL 설정
+  const api = axios.create({
+    baseURL: '/api/admin',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+  });
+
+  const generateStoreCode = async () => {
+    let storeCode;
+    let isDuplicate = true;
     // 매장 코드는 'CONG-' 접두사와 6자리 숫자로 구성
-    const number = Math.floor(100000 + Math.random() * 900000);
-    return `CONG-${number}`;
+    while(isDuplicate){
+      storeCode = `CONG-${Math.floor(100000 + Math.random() * 900000)}`;
+      // 중복된 매장 코드가 있는지 확인
+      try {
+        // 중복된 매장 코드가 있는지 확인
+        const response = await api.get(`/checkStoreCode`, {
+            params: { storeCode }
+        });
+        console.log("백엔드 다녀옴", response);
+        if (response.status === 200 && response.data.resultCode === "OK") {
+            isDuplicate = false;
+        }
+      } catch (error) {
+          console.error("Error in generateStoreCode:", error);
+          throw error; // 에러 발생 시 루프를 중단하고 에러를 던집니다.
+      }
+    }
+
+    return storeCode;
   };
 
   const generateInitialPassword = () => {
@@ -63,25 +191,42 @@ const StoreManagement = () => {
     return Math.random().toString(36).slice(-8).toUpperCase();
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = async () => {
+
+    // Generate store code and initial password
+    const storeCode = await generateStoreCode();
+    const initialPassword = generateInitialPassword();
+
+    // Update formData with generated credentials
+    setFormData({ ...formData, storeCode, initialPassword });
+
     setIsConfirmModalOpen(true);
   };
 
   const handleConfirmRegistration = async () => {
-    const storeCode = generateStoreCode();
-    const initialPassword = generateInitialPassword();
-    
-    setStoreCredentials({
-      storeCode,
-      initialPassword
-    });
+    const { storeCode, initialPassword, name, email } = formData;
 
-    // 이메일 전송 API 호출 (실제로는 백엔드에서 처리)
-    toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송됩니다.');
-    setIsConfirmModalOpen(false);
-    setIsFormOpen(false);
-  };
+    try {
+        const response = await api.post('/regStore', {
+            storeCode,
+            name,
+            email,
+            initialPassword,
+        });
+
+        if (response.status === 200 && response.data.resultCode === "OK") {
+            toast.success('매장이 등록되었습니다. 점주에게 이메일이 발송되었습니다.');
+        } else {
+            toast.error('매장 등록에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error(error);
+        toast.error('매장 등록 중 오류가 발생했습니다.');
+    } finally {
+        setIsConfirmModalOpen(false);
+        setIsFormOpen(false);
+    }
+};
 
   const handleCopyCredentials = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -93,9 +238,17 @@ const StoreManagement = () => {
     setIsInfoModalOpen(true);
   };
 
+  const statusMap: { [key: string]: string } = {
+    'REGISTERED': '등록요청',
+    'OPEN': '운영중',
+    'CLOSED': '폐점'
+  };
+
   const filteredStores = stores.filter(store =>
-    store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    store.address.toLowerCase().includes(searchTerm.toLowerCase())
+    (store.sName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (store.sAddress.street || '').toLowerCase().includes(searchTerm.toLowerCase())
+  ).filter(store =>
+    selectedStatus === '전체' || statusMap[store.sStatus] === selectedStatus
   );
 
   return (
@@ -114,7 +267,19 @@ const StoreManagement = () => {
       </div>
 
       <div className="mb-6">
-        <div className="relative">
+      <div className="relative flex items-center space-x-4">
+          <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+        >
+          {statuses.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -123,6 +288,7 @@ const StoreManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
           />
+        </div>
         </div>
       </div>
 
@@ -138,21 +304,27 @@ const StoreManagement = () => {
             <div className="flex items-start justify-between">
               <div className="flex items-center">
                 <Store className="w-5 h-5 text-primary mr-2" />
-                <h3 className="text-lg font-semibold">{store.name}</h3>
+                <h3 className="text-lg font-semibold">{store.sName}</h3>
               </div>
-              <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
-                운영중
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                store.sStatus === 'OPEN' ? 'text-green-700 bg-green-100' :
+                store.sStatus === 'CLOSED' ? 'text-red-700 bg-red-100' :
+                'text-yellow-700 bg-yellow-100'
+              }`}>
+                {store.sStatus === 'OPEN' ? '운영중' :
+                store.sStatus === 'CLOSED' ? '폐점' :
+                '등록요청'}
               </span>
             </div>
             
             <div className="mt-4 space-y-2">
               <div className="flex items-center text-gray-600">
                 <MapPin className="w-4 h-4 mr-2" />
-                <span className="text-sm">{store.address}</span>
+                <span className="text-sm">{store.sAddress.street}</span>
               </div>
               <div className="flex items-center text-gray-600">
                 <Phone className="w-4 h-4 mr-2" />
-                <span className="text-sm">{store.phone}</span>
+                <span className="text-sm">{store.sPhone}</span>
               </div>
             </div>
 
@@ -198,14 +370,24 @@ const StoreManagement = () => {
                   <label className="block text-sm font-medium text-gray-700">
                     매장명
                   </label>
+                  <div className="flex items-center space-x-2 w-full">
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={handleNameChange}
                     required
                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
-                             focus:ring-primary focus:border-primary"
+                              focus:ring-primary focus:border-primary"
                   />
+                  <button
+                    type="button"
+                    onClick={handleCheckNameDuplicate}
+                    className="w-20 px-2 py-1 text-sm text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
+                  >
+                    중복체크
+                  </button>
+                  </div>
+                  {nameError && <p className="text-red-500">{nameError}</p>}
                 </div>
 
                 <div>
@@ -215,11 +397,12 @@ const StoreManagement = () => {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    onChange={handleEmailChange}
                     required
                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm 
                              focus:ring-primary focus:border-primary"
                   />
+                  {emailError && <p className="text-red-500">{emailError}</p>}
                 </div>
 
                 <div className="flex justify-end space-x-3">
@@ -231,8 +414,10 @@ const StoreManagement = () => {
                     취소
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleFormSubmit}
                     className="px-4 py-2 bg-primary text-white rounded-lg"
+                    disabled={nameError !== '사용가능한 매장명입니다.'}
                   >
                     등록
                   </button>
@@ -272,6 +457,7 @@ const StoreManagement = () => {
                 <p>다음 정보로 매장을 등록하시겠습니까?</p>
                 
                 <div className="bg-gray-50 p-4 rounded-lg">
+                  <p><span className="font-medium">매장 코드:</span> {formData.storeCode}</p>
                   <p><span className="font-medium">매장명:</span> {formData.name}</p>
                   <p><span className="font-medium">이메일:</span> {formData.email}</p>
                 </div>

@@ -1,56 +1,124 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, Search, Settings } from 'lucide-react';
-import { menuData } from '../../data/menuData';
 import MenuForm from '../../components/admin/MenuForm';
 import GlobalOptionManagement from '../../components/admin/GlobalOptionManagement';
 import MenuOptionManagement from '../../components/admin/MenuOptionManagement';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+import { MenuItem, MenuOption } from '../../types';
 
 const MenuManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [isMenuFormOpen, setIsMenuFormOpen] = useState(false);
   const [isGlobalOptionOpen, setIsGlobalOptionOpen] = useState(false);
   const [isMenuOptionOpen, setIsMenuOptionOpen] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState(null);
+  const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
+  const [menus, setMenus] =  useState<MenuItem[]>([]);
+  const [globalOptions, setGlobalOptions] = useState<MenuOption[]>([]);
+  const s3BaseUrl = 'https://congcongjoa.s3.ap-northeast-2.amazonaws.com/menu/';
 
-  // 실제로는 API를 통해 전체 옵션 목록을 가져옴
-  const globalOptions = {
-    sizes: [
-      { id: 'size1', name: 'Short', price: -500, volume: '237ml', available: true },
-      { id: 'size2', name: 'Tall', price: 0, volume: '355ml', available: true },
-      { id: 'size3', name: 'Grande', price: 500, volume: '473ml', available: true }
-    ],
-    extras: [
-      { id: 'extra1', name: '샷 추가', price: 500, available: true },
-      { id: 'extra2', name: '시럽 추가', price: 300, available: true },
-      { id: 'extra3', name: '휘핑크림', price: 500, available: true }
-    ]
+  const categories = ['ALL', 'COFFEE', 'NONCOFFEE', 'DESERT'];
+
+  const fetchMenus = async () => {
+    try {
+      const response = await axios.get('/api/admin/menuList'); // API 엔드포인트를 적절히 변경하세요
+      console.log(response.data.data);
+      const data: MenuItem[] = Array.isArray(response.data.data) ? response.data.data.map((menu: any) => ({
+        id: menu.id,
+        name: menu.mnName,
+        description: menu.mnDetail,
+        price: menu.mnPrice,
+        category: menu.mnCate,
+        size: menu.mnSize,
+        status: menu.mnStatus,
+        images: menu.images.map((image: any) => ({
+          url: `${s3BaseUrl}${image.iName}`,
+          iName: image.iName,
+        })),
+        options: menu.menuOption,
+        nutrition: {
+          one: menu.nutrition.nOne,
+          calories: menu.nutrition.nCal,
+          carbo: menu.nutrition.nCarbo,
+          protein: menu.nutrition.nProtein,
+          fat: menu.nutrition.nFat,
+          sodium: menu.nutrition.nSalt,
+          caffeine: menu.nutrition.nCaffeine,
+          sugar: menu.nutrition.nSugar,
+        },
+        allergyInfo: {
+          milk: menu.allergy.aMilk === 'TRUE', 
+          soy: menu.allergy.aSoy === 'TRUE',
+          egg: menu.allergy.aEgg === 'TRUE',
+          wheat: menu.allergy.aWheat === 'TRUE',
+        },
+      })) : [];
+      setMenus(data);
+    } catch (error) {
+      console.error('메뉴 데이터를 가져오는 중 오류가 발생했습니다:', error);
+      toast.error('메뉴 데이터를 가져오는 중 오류가 발생했습니다');
+    }
   };
+
+  useEffect(() => {
+    fetchMenus();
+  }, []);
+
+  const fetchGlobalOptions = async () => {
+    try {
+      const response = await axios.get('/api/admin/optionList');
+      console.log(response.data);
+      const data: MenuOption[] = Array.isArray(response.data.data) ? response.data.data.map((option: any) => ({
+        id: option.id,
+        name: option.opName,
+        price: option.opPrice,
+        status: option.opStatus,
+      })) : [];
+      setGlobalOptions(data);
+    } catch (error) {
+      console.error('옵션 리스트를 가져오는 데 실패했습니다:', error);
+      toast.error('옵션 리스트를 가져오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  useEffect(() => {
+    fetchGlobalOptions();
+  }, []);
+
 
   const handleAddMenu = () => {
     setSelectedMenu(null);
     setIsMenuFormOpen(true);
   };
 
-  const handleEditMenu = (menu) => {
+  const handleEditMenu = (menu: MenuItem) => {
     setSelectedMenu(menu);
     setIsMenuFormOpen(true);
   };
 
-  const handleManageOptions = (menu) => {
+  const handleManageOptions = (menu: MenuItem) => {
     setSelectedMenu(menu);
     setIsMenuOptionOpen(true);
   };
 
-  const handleDeleteMenu = (id: string) => {
-    toast.success('메뉴가 삭제되었습니다');
+  const handleDeleteMenu = async (id: number) => {
+    try {
+      await axios.delete(`/api/admin/deleteMenu/${id}`); 
+      setMenus(menus.map(menu => menu.id === id ? { ...menu, status: false } : menu));
+      toast.success('메뉴가 미판매 상태로 변경되었습니다');
+    } catch (error) {
+      console.error('메뉴 상태 변경 중 오류가 발생했습니다', error);
+      toast.error('메뉴 상태 변경 중 오류가 발생했습니다');
+    }
   };
 
-  const filteredMenus = menuData.filter(menu =>
-    menu.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    menu.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMenus = menus.filter(menu => {
+    const matchesSearchTerm = menu.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'ALL' || menu.category === selectedCategory;
+    return matchesSearchTerm && matchesCategory;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -79,15 +147,28 @@ const MenuManagement = () => {
       </div>
 
       <div className="mb-6">
-        <div className="relative">
+        <div className="relative flex items-center space-x-4">
+          <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+        >
+          {categories.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="메뉴명 또는 카테고리로 검색"
+            placeholder="메뉴명으로 검색"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
           />
+          </div>
         </div>
       </div>
 
@@ -100,6 +181,9 @@ const MenuManagement = () => {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 카테고리
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                사이즈
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 기본 가격
@@ -124,7 +208,6 @@ const MenuManagement = () => {
                     />
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900">{menu.name}</div>
-                      <div className="text-sm text-gray-500">{menu.nameEng}</div>
                     </div>
                   </div>
                 </td>
@@ -134,13 +217,16 @@ const MenuManagement = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  {menu.size}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   {menu.price.toLocaleString()}원
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    menu.isNew ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    menu.status ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {menu.isNew ? 'NEW' : '판매중'}
+                    {menu.status ? '판매중' : '미판매'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -171,7 +257,10 @@ const MenuManagement = () => {
 
       <MenuForm
         isOpen={isMenuFormOpen}
-        onClose={() => setIsMenuFormOpen(false)}
+        onClose={() => {
+          setIsMenuFormOpen(false);
+          fetchMenus();
+        }}
         menu={selectedMenu}
       />
 

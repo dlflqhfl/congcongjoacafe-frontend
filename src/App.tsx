@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import {Routes, Route, useLocation} from 'react-router-dom';
 import AdminLayout from './components/layout/AdminLayout';
 import OwnerLayout from './components/layout/OwnerLayout';
 import Navbar from './components/layout/Navbar';
@@ -32,7 +32,6 @@ import Settings from "./pages/customer/Settings.tsx";
 import ReviewWrite from "./pages/customer/ReviewWrite.tsx";
 import StampCard from "./pages/customer/StampCard.tsx";
 import CouponList from "./pages/customer/CouponList.tsx";
-import {Settings2} from "lucide-react";
 import OwnerSettings from "./pages/owner/OwnerSettings.tsx";
 import StoreSetup from "./pages/owner/StoreSetup.tsx";
 import OwnerInquiries from "./pages/owner/Inquiries.tsx";
@@ -43,10 +42,49 @@ import OwnerSales from "./pages/owner/Sales.tsx";
 import StoreEdit from "./pages/owner/StoreEdit.tsx";
 import PasswordChange from "./pages/owner/PasswordChange.tsx";
 import StoreSettings from "./pages/owner/StoreSettings.tsx";
+import {useEffect, useRef} from "react";
+import {useOwnerAuthStore} from "./store/ownerAuthStore.ts";
+import axios from "axios";
 
 const App = () => {
+    const location = useLocation();
+    const prevLocation = useRef(location.pathname);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const clearAuth = useOwnerAuthStore((state) => state.clearAuth);
+
+    useEffect(() => {
+        const script = document.createElement('script');
+        script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_API_KEY}&libraries=services,clusterer&autoload=false`;
+        script.async = true;
+
+        document.body.appendChild(script);
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleOwnerLogout = async () => {
+            try {
+                await axios.post(`${API_BASE_URL}/logout`, null, { withCredentials: true });
+                clearAuth();
+                localStorage.removeItem('ownerAuth');
+                console.log("오너 페이지를 벗어났습니다. 로그아웃 완료.");
+            } catch (error) {
+                console.error('로그아웃 처리 중 오류 발생:', error);
+            }
+        };
+
+        if (location.pathname !== prevLocation.current) {
+            if (prevLocation.current.startsWith('/owner') && !location.pathname.startsWith('/owner')) {
+                handleOwnerLogout();
+            }
+            prevLocation.current = location.pathname;
+        }
+    }, [location.pathname, API_BASE_URL, clearAuth]);
+
+  //라우터
   return (
-    <BrowserRouter>
       <Routes>
         {/* Public Routes */}
         <Route element={<Navbar />}>
@@ -78,7 +116,7 @@ const App = () => {
         <Route path="/mypage/coupons" element={<><Navbar /><CouponList /><ChatButton /></>} />
         <Route path="/mypage/settings" element={<><Navbar /><Settings /><ChatButton /></>} />
         <Route path="/review/write/:orderId" element={<><Navbar /><ReviewWrite /><ChatButton /></>} />
-        
+
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
@@ -88,7 +126,7 @@ const App = () => {
           <Route path="coupons" element={<CouponManagement />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
-        
+
         {/* Owner Routes */}
         <Route path="/owner" element={<OwnerLayout />}>
           <Route index element={<OwnerDashboard/>} />
@@ -103,7 +141,6 @@ const App = () => {
           <Route path="password" element={<PasswordChange/>} />
         </Route>
       </Routes>
-    </BrowserRouter>
   );
 };
 
